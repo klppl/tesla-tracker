@@ -208,6 +208,25 @@
             </div>
         </div>
 
+        <!-- Utrustning & Färg -->
+        <h2 class="section-title">Utrustning & Färg</h2>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Utrustning vs Pris</h2>
+                <p class="chart-subtitle">Snittpris beroende på dragkrok och vinterhjul. Vad är utrustningen värd?</p>
+                <div class="chart-container">
+                    <canvas id="chart-equipment"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title">Färg vs Pris</h2>
+                <p class="chart-subtitle">Snittpris per färg. Betalar du mer för en viss kulör?</p>
+                <div class="chart-container">
+                    <canvas id="chart-colors"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Global Trends -->
         <div class="chart-card" style="margin-top: 20px;">
             <h2 class="chart-title">Nya annonser per dag</h2>
@@ -469,7 +488,122 @@
                 });
             }
 
-            // 5. Render Aggregated Scatter (all models) with year filters
+            // 5. Equipment value chart
+            if (analyticsData.equipment_value && analyticsData.equipment_value.length > 0) {
+                const towbarMap = { 'INCLUDED': 'Inkluderad', 'AVAILABLE': 'Finns som tillval', 'NOT_AVAILABLE': 'Saknas', null: 'Okänt' };
+                const winterMap = { 'FRICTION': 'Friktionsdäck', 'STUDDED': 'Dubbdäck', null: 'Inga vinterhjul' };
+
+                const labels = analyticsData.equipment_value.map(e => {
+                    const t = towbarMap[e.towbar] || e.towbar || 'Okänt';
+                    const w = winterMap[e.winter_wheels] || e.winter_wheels || 'Inga';
+                    return `Krok: ${t} / ${w}`;
+                });
+                const prices = analyticsData.equipment_value.map(e => e.avg_price);
+                const counts = analyticsData.equipment_value.map(e => e.count);
+
+                const ctxEquip = document.getElementById('chart-equipment').getContext('2d');
+                new Chart(ctxEquip, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Snittpris (kr)',
+                            data: prices,
+                            backgroundColor: 'rgba(232, 33, 39, 0.6)',
+                            borderColor: '#e82127',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.x)} kr`;
+                                    },
+                                    afterLabel: function (ctx) {
+                                        return `Antal bilar: ${counts[ctx.dataIndex]}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            y: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            // 6. Color stats chart
+            if (analyticsData.color_stats && analyticsData.color_stats.length > 0) {
+                const colorHex = {
+                    'Svart': '#1a1a1a', 'Vit': '#f0f0f0', 'Grå': '#808080', 'Silver': '#c0c0c0',
+                    'Blå': '#3b82f6', 'Röd': '#e82127', 'Brun': '#8B4513', 'Grön': '#22c55e',
+                    'Beige': '#d4a76a', 'Orange': '#f97316',
+                };
+                const colorLabels = analyticsData.color_stats.map(c => c.color);
+                const colorPrices = analyticsData.color_stats.map(c => c.avg_price);
+                const colorCounts = analyticsData.color_stats.map(c => c.count);
+                const bgColors = colorLabels.map(c => {
+                    const hex = colorHex[c] || '#a78bfa';
+                    return hex + (c === 'Svart' ? 'cc' : '99');
+                });
+                const borderColors = colorLabels.map(c => colorHex[c] || '#a78bfa');
+
+                const ctxColor = document.getElementById('chart-colors').getContext('2d');
+                new Chart(ctxColor, {
+                    type: 'bar',
+                    data: {
+                        labels: colorLabels,
+                        datasets: [{
+                            label: 'Snittpris (kr)',
+                            data: colorPrices,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: 2,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                    },
+                                    afterLabel: function (ctx) {
+                                        return `Antal bilar: ${colorCounts[ctx.dataIndex]}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 7. Render Aggregated Scatter (all models) with year filters
             if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
                 const modelColors = {
                     'Tesla Model 3': '#38bdf8',

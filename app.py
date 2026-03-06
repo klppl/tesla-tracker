@@ -2,6 +2,7 @@ from flask import Flask, render_template
 import sqlite3
 import os
 import argparse
+from datetime import datetime
 
 app = Flask(__name__)
 DB_PATH = os.path.join(os.path.dirname(__file__), "tesla_cars.db")
@@ -24,6 +25,11 @@ def get_analytics_data():
         "daily_additions": {"dates": [], "counts": []},
         "price_trends": {},
         "market_stats": {},
+        "equipment_value": [],
+        "color_stats": {},
+        "depreciation": {},
+        "listing_timing": {"by_weekday": [], "by_month": []},
+        "price_prediction": {},
     }
     
     # 1. Averages by Model and Year. Convert mileage (in km) to 'mil' (divide by 10)
@@ -118,6 +124,148 @@ def get_analytics_data():
             analytics["market_stats"][model] = {
                 "sold_count": row['total_removed'],
                 "avg_days_on_market": int(row['avg_days']) if row['avg_days'] else None,
+            }
+    except Exception:
+        pass
+
+    # 6. Equipment value – price impact of towbar, winter wheels, battery range
+    try:
+        cursor.execute('''
+            SELECT
+                towbar,
+                winter_wheels,
+                ROUND(AVG(price)) as avg_price,
+                COUNT(*) as cnt
+            FROM cars
+            WHERE price IS NOT NULL AND year IS NOT NULL AND mileage IS NOT NULL
+            GROUP BY towbar, winter_wheels
+            HAVING cnt >= 2
+        ''')
+        for row in cursor.fetchall():
+            analytics["equipment_value"].append({
+                "towbar": row["towbar"],
+                "winter_wheels": row["winter_wheels"],
+                "avg_price": row["avg_price"],
+                "count": row["cnt"],
+            })
+    except Exception:
+        pass
+
+    # 7. Color stats – average price per color
+    try:
+        cursor.execute('''
+            SELECT color, ROUND(AVG(price)) as avg_price, COUNT(*) as cnt
+            FROM cars
+            WHERE color IS NOT NULL AND price IS NOT NULL
+            GROUP BY color
+            HAVING cnt >= 2
+            ORDER BY avg_price DESC
+        ''')
+        colors_list = []
+        for row in cursor.fetchall():
+            colors_list.append({
+                "color": row["color"],
+                "avg_price": int(row["avg_price"]),
+                "count": row["cnt"],
+            })
+        analytics["color_stats"] = colors_list
+    except Exception:
+        pass
+
+    # 8. Depreciation curve – avg price by car age (current year - model year)
+    current_year = datetime.now().year
+    try:
+        cursor.execute('''
+            SELECT model, year, ROUND(AVG(price)) as avg_price, COUNT(*) as cnt
+            FROM cars
+            WHERE year IS NOT NULL AND price IS NOT NULL
+            GROUP BY model, year
+            ORDER BY model, year
+        ''')
+        for row in cursor.fetchall():
+            model = f"Tesla {row['model']}"
+            age = current_year - row['year']
+            if model not in analytics["depreciation"]:
+                analytics["depreciation"][model] = {"ages": [], "prices": [], "years": [], "counts": []}
+            analytics["depreciation"][model]["ages"].append(age)
+            analytics["depreciation"][model]["prices"].append(int(row['avg_price']))
+            analytics["depreciation"][model]["years"].append(row['year'])
+            analytics["depreciation"][model]["counts"].append(row['cnt'])
+    except Exception:
+        pass
+
+    # 9. Listing timing – weekday and month distribution
+    weekday_names = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+    try:
+        cursor.execute('''
+            SELECT
+                CAST(strftime('%w', substr(created_at, 1, 10)) AS INTEGER) as dow,
+                CAST(strftime('%m', substr(created_at, 1, 10)) AS INTEGER) as month,
+                price
+            FROM cars
+            WHERE created_at IS NOT NULL AND price IS NOT NULL
+        ''')
+        weekday_prices = {i: [] for i in range(7)}
+        month_prices = {i: [] for i in range(1, 13)}
+        for row in cursor.fetchall():
+            dow = row['dow']  # 0=Sunday in SQLite
+            weekday_prices[dow].append(row['price'])
+            month_prices[row['month']].append(row['price'])
+
+        # SQLite: 0=Sun, 1=Mon..6=Sat → remap to Mon-Sun
+        remap = [1, 2, 3, 4, 5, 6, 0]  # Mon=1, Tue=2 ... Sun=0
+        analytics["listing_timing"]["by_weekday"] = [{
+            "label": weekday_names[i],
+            "count": len(weekday_prices[remap[i]]),
+            "avg_price": round(sum(weekday_prices[remap[i]]) / len(weekday_prices[remap[i]])) if weekday_prices[remap[i]] else 0,
+        } for i in range(7)]
+
+        analytics["listing_timing"]["by_month"] = [{
+            "label": month_names[m - 1],
+            "count": len(month_prices[m]),
+            "avg_price": round(sum(month_prices[m]) / len(month_prices[m])) if month_prices[m] else 0,
+        } for m in range(1, 13)]
+    except Exception:
+        pass
+
+    # 10. Price prediction – linear extrapolation from snapshots
+    try:
+        cursor.execute('''
+            SELECT model, date, avg_price
+            FROM price_snapshots
+            ORDER BY model, date
+        ''')
+        snapshot_data = {}
+        for row in cursor.fetchall():
+            model = f"Tesla {row['model']}"
+            snapshot_data.setdefault(model, []).append((row['date'], row['avg_price']))
+
+        for model, points in snapshot_data.items():
+            if len(points) < 2:
+                continue
+            # Simple linear regression: price = slope * day_index + intercept
+            n = len(points)
+            xs = list(range(n))
+            ys = [p[1] for p in points]
+            x_mean = sum(xs) / n
+            y_mean = sum(ys) / n
+            num = sum((xs[i] - x_mean) * (ys[i] - y_mean) for i in range(n))
+            den = sum((xs[i] - x_mean) ** 2 for i in range(n))
+            slope = num / den if den != 0 else 0
+            intercept = y_mean - slope * x_mean
+
+            # Predict 90 days ahead
+            pred_90 = round(slope * (n - 1 + 90) + intercept)
+            current = ys[-1]
+            change_pct = round((pred_90 - current) / current * 100, 1) if current else 0
+
+            analytics["price_prediction"][model] = {
+                "current_avg": current,
+                "predicted_90d": pred_90,
+                "change_pct": change_pct,
+                "direction": "up" if slope > 0 else "down",
+                "data_points": n,
             }
     except Exception:
         pass

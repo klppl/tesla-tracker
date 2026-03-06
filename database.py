@@ -26,7 +26,11 @@ def init_db():
             url TEXT,
             source TEXT DEFAULT 'carla.se',
             status TEXT DEFAULT 'active',
-            removed_at TEXT
+            removed_at TEXT,
+            color TEXT,
+            towbar TEXT,
+            winter_wheels TEXT,
+            battery_range INTEGER
         )
     ''')
 
@@ -42,7 +46,12 @@ def init_db():
     ''')
 
     # Add columns if they don't exist (for existing databases)
-    for col, coltype, default in [('status', 'TEXT', "'active'"), ('removed_at', 'TEXT', 'NULL')]:
+    new_cols = [
+        ('status', 'TEXT', "'active'"), ('removed_at', 'TEXT', 'NULL'),
+        ('color', 'TEXT', 'NULL'), ('towbar', 'TEXT', 'NULL'),
+        ('winter_wheels', 'TEXT', 'NULL'), ('battery_range', 'INTEGER', 'NULL'),
+    ]
+    for col, coltype, default in new_cols:
         try:
             cursor.execute(f"ALTER TABLE cars ADD COLUMN {col} {coltype} DEFAULT {default}")
         except sqlite3.OperationalError:

@@ -102,8 +102,12 @@ def save_cars_to_db(cars):
         created_at = car.get("createdAt")
         features = clean_features(car.get("badges", []))
         image_url = car.get("mainPhoto", {}).get("url") if isinstance(car.get("mainPhoto"), dict) else car.get("mainPhoto")
-        
-        # Carla URL format typically: /bil/{objectID} 
+        color = car.get("color")
+        towbar = car.get("towbarAvailability")
+        winter_wheels = car.get("winterWheelsTreadType")
+        battery_range = car.get("batteryRange")
+
+        # Carla URL format typically: /bil/{objectID}
         object_id = car.get("objectID", "")
         url = f"https://www.carla.se/bil/{object_id}"
         
@@ -115,9 +119,9 @@ def save_cars_to_db(cars):
             # Insert new
             try:
                 cursor.execute('''
-                    INSERT INTO cars (id, model, version, year, price, mileage, created_at, features, image_url, url)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (car_id, model, version, year, price, mileage, created_at, features, image_url, url))
+                    INSERT INTO cars (id, model, version, year, price, mileage, created_at, features, image_url, url, color, towbar, winter_wheels, battery_range)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (car_id, model, version, year, price, mileage, created_at, features, image_url, url, color, towbar, winter_wheels, battery_range))
                 new_cars_added += 1
             except Exception as e:
                 print(f"Error inserting car {car_id}: {e}")
@@ -126,14 +130,16 @@ def save_cars_to_db(cars):
             if str(old_price) != str(price):
                 # Update price and url
                 cursor.execute('''
-                    UPDATE cars SET price = ?, scraped_at = CURRENT_TIMESTAMP, url = ? WHERE id = ?
-                ''', (price, url, car_id))
+                    UPDATE cars SET price = ?, scraped_at = CURRENT_TIMESTAMP, url = ?,
+                    color = ?, towbar = ?, winter_wheels = ?, battery_range = ? WHERE id = ?
+                ''', (price, url, color, towbar, winter_wheels, battery_range, car_id))
                 updated_cars += 1
             else:
                 # Update timestamp and url (to fix old broken urls)
                 cursor.execute('''
-                    UPDATE cars SET scraped_at = CURRENT_TIMESTAMP, url = ? WHERE id = ?
-                ''', (url, car_id))
+                    UPDATE cars SET scraped_at = CURRENT_TIMESTAMP, url = ?,
+                    color = ?, towbar = ?, winter_wheels = ?, battery_range = ? WHERE id = ?
+                ''', (url, color, towbar, winter_wheels, battery_range, car_id))
             
     conn.commit()
     conn.close()
