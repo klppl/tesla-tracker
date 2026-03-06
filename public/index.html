@@ -227,6 +227,39 @@
             </div>
         </div>
 
+        <!-- Djupanalys -->
+        <h2 class="section-title">Djupanalys</h2>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Värdeminskningskurva</h2>
+                <p class="chart-subtitle">Snittpris per ålder (år). Hur snabbt tappar varje modell i värde?</p>
+                <div class="chart-container">
+                    <canvas id="chart-depreciation"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title">Prisprediktering (90 dagar)</h2>
+                <p class="chart-subtitle">Uppskattad prisutveckling baserat på trenddata. Kräver flera dagars data.</p>
+                <div id="prediction-cards" style="display:flex;flex-wrap:wrap;gap:16px;padding:20px 0;"></div>
+            </div>
+        </div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Köp-/säljtiming – Veckodag</h2>
+                <p class="chart-subtitle">Vilken dag läggs flest bilar upp? Staplar = antal, linje = snittpris.</p>
+                <div class="chart-container">
+                    <canvas id="chart-timing-weekday"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title">Köp-/säljtiming – Månad</h2>
+                <p class="chart-subtitle">Vilken månad är bilarna billigast? Staplar = antal, linje = snittpris.</p>
+                <div class="chart-container">
+                    <canvas id="chart-timing-month"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Global Trends -->
         <div class="chart-card" style="margin-top: 20px;">
             <h2 class="chart-title">Nya annonser per dag</h2>
@@ -601,7 +634,164 @@
                 });
             }
 
-            // 7. Render Aggregated Scatter (all models) with year filters
+            // 7. Depreciation curve
+            if (analyticsData.depreciation && Object.keys(analyticsData.depreciation).length > 0) {
+                const depDatasets = [];
+                for (const [model, data] of Object.entries(analyticsData.depreciation)) {
+                    const color = trendColors[model] || '#a78bfa';
+                    depDatasets.push({
+                        label: model,
+                        data: data.ages.map((age, i) => ({ x: age, y: data.prices[i] })),
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        showLine: true,
+                    });
+                }
+                const ctxDep = document.getElementById('chart-depreciation').getContext('2d');
+                new Chart(ctxDep, {
+                    type: 'scatter',
+                    data: { datasets: depDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        const model = ctx.dataset.label;
+                                        const depData = analyticsData.depreciation[model];
+                                        const idx = ctx.dataIndex;
+                                        const price = new Intl.NumberFormat('sv-SE').format(ctx.parsed.y);
+                                        return [
+                                            `${model} (årsmodell ${depData.years[idx]})`,
+                                            `Snittpris: ${price} kr`,
+                                            `Ålder: ${ctx.parsed.x} år`,
+                                            `Antal bilar: ${depData.counts[idx]}`,
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Ålder (år)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                reverse: false,
+                                ticks: { stepSize: 1 }
+                            },
+                            y: {
+                                title: { display: true, text: 'Snittpris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 8. Price prediction cards
+            if (analyticsData.price_prediction && Object.keys(analyticsData.price_prediction).length > 0) {
+                const container = document.getElementById('prediction-cards');
+                for (const [model, pred] of Object.entries(analyticsData.price_prediction)) {
+                    const color = pred.direction === 'down' ? '#34d399' : '#e82127';
+                    const arrow = pred.direction === 'down' ? '↓' : '↑';
+                    const currentFmt = new Intl.NumberFormat('sv-SE').format(pred.current_avg);
+                    const predFmt = new Intl.NumberFormat('sv-SE').format(pred.predicted_90d);
+                    const card = document.createElement('div');
+                    card.style.cssText = `
+                        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 12px; padding: 20px; flex: 1; min-width: 200px;
+                    `;
+                    card.innerHTML = `
+                        <div style="font-size:0.85rem;color:#a1a1aa;margin-bottom:8px;">${model}</div>
+                        <div style="font-size:1.1rem;margin-bottom:4px;">Nu: <strong>${currentFmt} kr</strong></div>
+                        <div style="font-size:1.1rem;margin-bottom:8px;">Om 90 dagar: <strong>${predFmt} kr</strong></div>
+                        <div style="font-size:1.3rem;font-weight:700;color:${color};">${arrow} ${Math.abs(pred.change_pct)}%</div>
+                        <div style="font-size:0.75rem;color:#71717a;margin-top:8px;">Baserat på ${pred.data_points} datapunkter</div>
+                    `;
+                    container.appendChild(card);
+                }
+            } else {
+                const container = document.getElementById('prediction-cards');
+                if (container) container.innerHTML = '<p style="color:#a1a1aa;">Kräver minst 2 dagars snapshot-data. Kör scrapern dagligen!</p>';
+            }
+
+            // 9. Listing timing charts
+            function renderTimingChart(canvasId, data, xLabel) {
+                if (!data || data.length === 0) return;
+                const labels = data.map(d => d.label);
+                const counts = data.map(d => d.count);
+                const avgPrices = data.map(d => d.avg_price);
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Antal annonser',
+                                data: counts,
+                                type: 'bar',
+                                backgroundColor: 'rgba(232, 33, 39, 0.5)',
+                                borderColor: '#e82127',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                order: 2,
+                                yAxisID: 'y',
+                            },
+                            {
+                                label: 'Snittpris (kr)',
+                                data: avgPrices,
+                                type: 'line',
+                                borderColor: '#c0c0c0',
+                                backgroundColor: '#c0c0c0',
+                                borderWidth: 2,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#000',
+                                pointBorderColor: '#c0c0c0',
+                                pointBorderWidth: 2,
+                                tension: 0.3,
+                                order: 1,
+                                yAxisID: 'y1',
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        if (ctx.datasetIndex === 0) return `Antal: ${ctx.parsed.y}`;
+                                        return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { position: 'left', title: { display: true, text: 'Antal' }, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y1: { position: 'right', title: { display: true, text: 'Snittpris (kr)' }, grid: { drawOnChartArea: false } }
+                        }
+                    }
+                });
+            }
+
+            if (analyticsData.listing_timing) {
+                renderTimingChart('chart-timing-weekday', analyticsData.listing_timing.by_weekday, 'Veckodag');
+                renderTimingChart('chart-timing-month', analyticsData.listing_timing.by_month, 'Månad');
+            }
+
+            // 10. Render Aggregated Scatter (all models) with year filters
             if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
                 const modelColors = {
                     'Tesla Model 3': '#38bdf8',
