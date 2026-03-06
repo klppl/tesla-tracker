@@ -4,22 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tesla Analysverktyg</title>
+    <title>Tesla Tracker</title>
     <!-- Modern font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent: #38bdf8;
-            --accent-overlay: rgba(56, 189, 248, 0.2);
-            --secondary-accent: #818cf8;
-            --tertiary-accent: #f472b6;
-            --border: rgba(255, 255, 255, 0.1);
+            --bg-color: #000000;
+            --card-bg: rgba(24, 24, 27, 0.8);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --accent: #e82127;
+            --accent-overlay: rgba(232, 33, 39, 0.15);
+            --secondary-accent: #c0c0c0;
+            --tertiary-accent: #e82127;
+            --border: rgba(255, 255, 255, 0.08);
         }
 
         body {
@@ -35,13 +35,17 @@
         }
 
         h1 {
-            font-weight: 700;
+            font-weight: 300;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
             margin-bottom: 0.5rem;
             text-align: center;
             font-size: 2.5rem;
-            background: linear-gradient(to right, var(--accent), var(--secondary-accent), var(--tertiary-accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--text-primary);
+        }
+
+        h1 span {
+            color: var(--accent);
         }
 
         .subtitle {
@@ -60,11 +64,13 @@
         }
 
         .section-title {
-            font-size: 1.8rem;
-            font-weight: 600;
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
             margin: 10px 0;
             padding-bottom: 10px;
-            border-bottom: 2px solid var(--border);
+            border-bottom: 1px solid var(--border);
             color: var(--text-primary);
         }
 
@@ -87,7 +93,7 @@
         .chart-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            border-color: rgba(56, 189, 248, 0.3);
+            border-color: rgba(232, 33, 39, 0.3);
         }
 
         .chart-title {
@@ -141,7 +147,7 @@
         .year-filter-btn.active {
             background: var(--accent-overlay);
             border-color: var(--accent);
-            color: var(--accent);
+            color: #fff;
         }
 
         .empty-state {
@@ -164,7 +170,7 @@
 
 <body>
 
-    <h1>Tesla Analytics</h1>
+    <h1>T<span>E</span>SLA TRACK<span>E</span>R</h1>
     <p class="subtitle">Hitta bästa bilen för pengarna</p>
 
     <div class="dashboard-container" id="dashboard">
@@ -183,6 +189,25 @@
         <!-- Multi-model injection point -->
         <div id="models-container"></div>
 
+        <!-- Marknadstrender -->
+        <h2 class="section-title">Marknadstrender</h2>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Prisutveckling över tid</h2>
+                <p class="chart-subtitle">Snitt- och medianpris per modell. Baseras på dagliga snapshots.</p>
+                <div class="chart-container">
+                    <canvas id="chart-price-trends"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title">Tid på marknaden</h2>
+                <p class="chart-subtitle">Genomsnittligt antal dagar innan en bil säljs/tas bort, per modell.</p>
+                <div class="chart-container">
+                    <canvas id="chart-market-stats"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Global Trends -->
         <div class="chart-card" style="margin-top: 20px;">
             <h2 class="chart-title">Nya annonser per dag</h2>
@@ -197,7 +222,7 @@
 
     <!-- Inject data securely to JS -->
     <script id="chart-data" type="application/json">
-        {"averages": {"Tesla Model 3": {"counts": [3, 2, 4, 3, 8, 4, 2], "mileages": [8822.5, 9720.9, 6489.3, 8437.8, 5268.6, 4565.7, 640.6], "prices": [251657, 245490, 308240, 302157, 326115, 411490, 465490], "years": [2019, 2020, 2021, 2022, 2023, 2024, 2025]}, "Tesla Model Y": {"counts": [3, 11, 7, 3], "mileages": [4887.6, 5522.9, 4588.9, 2518.4], "prices": [394657, 390626, 436276, 532657], "years": [2022, 2023, 2024, 2025]}}, "daily_additions": {"counts": [1, 5, 2, 4, 4, 5, 2, 3, 3, 1, 1, 6, 6, 7], "dates": ["2026-02-19", "2026-02-20", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06"]}, "scatter": {"Tesla Model 3": [{"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6a5nbq9io6g00930jr0", "version": "Standard Range Highland (Autopilot)", "x": 6707.4, "y": 357990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6e7gsq9io6g009tag2g", "version": "Standard Range Highland (Autopilot)", "x": 2974.5, "y": 394990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d4o51da9io6g00fboiqg", "version": "Standard Range (Autopilot)", "x": 6504.2, "y": 309990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d64ceaa9io6g00asad70", "version": "Standard Range Plus (Autopilot)", "x": 9398.5, "y": 225990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d6a5mja9io6g00930g3g", "version": " Standard Range (Autopilot)", "x": 5567.3, "y": 299990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651iiq9io6g00dpsc4g", "version": " Standard Range (Autopilot)", "x": 5465.2, "y": 299990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d41kooa9io6g00aing3g", "version": "Long Range AWD (Autopilot)", "x": 9876.1, "y": 252990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d6131bi9io6g0092irl0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 5646.0, "y": 271990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651oka9io6g00dpsprg", "version": " Standard Range Plus Facelift (Autopilot)", "x": 4757.5, "y": 302990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d69l6bi9io6g00e5mtv0", "version": "Long Range AWD Facelift (Autopilot)", "x": 2307.7, "y": 376990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d51emia9io6g00btatmg", "version": "Long Range AWD Facelift (Autopilot)", "x": 4253.7, "y": 338990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d62aap29io6g00bpcdng", "version": "Long Range AWD Highland (Autopilot)", "x": 2756.2, "y": 456990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d64qh0q9io6g00bqlrk0", "version": "Long Range AWD Facelift (Autopilot)", "x": 8541.4, "y": 313490, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69glqa9io6g00aqq7jg", "version": "Long Range RWD Highland (Autopilot)", "x": 300.8, "y": 462990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d5fm0ra9io6g00de7040", "version": " Long Range AWD (Autopilot)", "x": 10829.7, "y": 234990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d64umpq9io6g00ehv1b0", "version": " Long Range AWD Highland (Uppgraderad Autopilot)", "x": 5824.7, "y": 435990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5r3c129io6g00d351cg", "version": "Performance AWD Facelift (Autopilot)", "x": 6545.4, "y": 328990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5qeir29io6g00d2sq10", "version": "Long Range AWD Facelift (Autopilot)", "x": 8565.0, "y": 316990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d3ovp8a9io6g00ai2460", "version": "Long Range AWD Facelift (Autopilot)", "x": 7765.0, "y": 353990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69dpoa9io6g00e09u2g", "version": "Long Range RWD Highland (Autopilot)", "x": 980.4, "y": 467990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d5ed1ma9io6g00abo7i0", "version": "Long Range AWD (Autopilot)", "x": 10043.2, "y": 264990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651jba9io6g00dpsdqg", "version": "Standard Range Plus Facelift (Autopilot)", "x": 3743.4, "y": 311990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5pmlea9io6g00cd4980", "version": "Performance AWD (Uppgraderad Autopilot)", "x": 9512.0, "y": 292990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d61m6kq9io6g00a8qss0", "version": "Long Range AWD (Autopilot)", "x": 5761.7, "y": 266990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d5v12ti9io6g0087p1og", "version": "Long Range AWD Facelift (Autopilot)", "x": 6038.8, "y": 352990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5s9ena9io6g008sjpf0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 8206.9, "y": 275990, "year": 2022}], "Tesla Model Y": [{"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651k3q9io6g00dpsfc0", "version": "Long Range AWD (Autopilot)", "x": 3704.5, "y": 460990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6ekpha9io6g00ctd1gg", "version": " Performance (Autopilot)", "x": 4674.5, "y": 426990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d6c605q9io6g00bnn040", "version": " Long Range AWD (Autopilot)", "x": 3101.3, "y": 397990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d5dtkoq9io6g00dh23pg", "version": "Long Range AWD (Autopilot)", "x": 3658.4, "y": 479990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6eo7jq9io6g008k5p80", "version": "Long Range AWD (Autopilot)", "x": 6830.8, "y": 394990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6emg3q9io6g008jvc60", "version": " Long Range AWD (Autopilot)", "x": 5409.4, "y": 399990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6489ki9io6g00as75gg", "version": " Performance (Autopilot)", "x": 6874.8, "y": 411990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6c8cv29io6g00ad5l9g", "version": "Standard Range RWD (Autopilot)", "x": 5967.8, "y": 339990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651n3q9io6g00dpsmp0", "version": " Standard Range RWD (Autopilot)", "x": 4925.3, "y": 360990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6287nq9io6g00fs0dsg", "version": " Long Range AWD (Autopilot)", "x": 4676.8, "y": 407990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6c7lsa9io6g00ad3k1g", "version": "Performance AWD (Autopilot)", "x": 2854.6, "y": 478990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tiim29io6g00bf2a80", "version": "Long Range AWD (Autopilot)", "x": 7097.3, "y": 377990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tpli29io6g00dqbgj0", "version": "Standard Range RWD (Autopilot)", "x": 6324.2, "y": 334990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d52nsbi9io6g00ethqrg", "version": "Standard Range RWD (Autopilot)", "x": 3485.9, "y": 355990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d54kdga9io6g00ck58bg", "version": "Long Range AWD (Autopilot)", "x": 6988.9, "y": 377990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d4u46o29io6g00dip170", "version": "Performance AWD (Autopilot)", "x": 4572.6, "y": 407990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d65ere29io6g009m83j0", "version": " Long Range AWD (Autopilot)", "x": 1581.6, "y": 497990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d667v7i9io6g008if220", "version": "Long Range AWD (Autopilot)", "x": 4442.5, "y": 446990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d54h1629io6g00aif0vg", "version": "Long Range AWD (Autopilot)", "x": 6731.5, "y": 392990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651ns29io6g00dpsobg", "version": "Long Range AWD (Autopilot)", "x": 2488.2, "y": 475990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d66uodq9io6g00847fkg", "version": "Performance AWD (Autopilot)", "x": 2679.1, "y": 452990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6286gq9io6g00fs0apg", "version": " Long Range AWD (Autopilot)", "x": 2543.5, "y": 475990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d5icp3a9io6g00f4ovu0", "version": " Long Range RWD (Autopilot)", "x": 11164.0, "y": 353990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d64teaq9io6g00bqgvpg", "version": " Long Range AWD Premium Juniper (Autopilot)", "x": 2315.2, "y": 619990, "year": 2025}]}, "scatter_all": [{"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651k3q9io6g00dpsfc0", "version": "Long Range AWD (Autopilot)", "x": 3704.5, "y": 460990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6ekpha9io6g00ctd1gg", "version": " Performance (Autopilot)", "x": 4674.5, "y": 426990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d6c605q9io6g00bnn040", "version": " Long Range AWD (Autopilot)", "x": 3101.3, "y": 397990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6a5nbq9io6g00930jr0", "version": "Standard Range Highland (Autopilot)", "x": 6707.4, "y": 357990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6e7gsq9io6g009tag2g", "version": "Standard Range Highland (Autopilot)", "x": 2974.5, "y": 394990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d4o51da9io6g00fboiqg", "version": "Standard Range (Autopilot)", "x": 6504.2, "y": 309990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d64ceaa9io6g00asad70", "version": "Standard Range Plus (Autopilot)", "x": 9398.5, "y": 225990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d6a5mja9io6g00930g3g", "version": " Standard Range (Autopilot)", "x": 5567.3, "y": 299990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d5dtkoq9io6g00dh23pg", "version": "Long Range AWD (Autopilot)", "x": 3658.4, "y": 479990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6eo7jq9io6g008k5p80", "version": "Long Range AWD (Autopilot)", "x": 6830.8, "y": 394990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651iiq9io6g00dpsc4g", "version": " Standard Range (Autopilot)", "x": 5465.2, "y": 299990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6emg3q9io6g008jvc60", "version": " Long Range AWD (Autopilot)", "x": 5409.4, "y": 399990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6489ki9io6g00as75gg", "version": " Performance (Autopilot)", "x": 6874.8, "y": 411990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6c8cv29io6g00ad5l9g", "version": "Standard Range RWD (Autopilot)", "x": 5967.8, "y": 339990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d41kooa9io6g00aing3g", "version": "Long Range AWD (Autopilot)", "x": 9876.1, "y": 252990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d6131bi9io6g0092irl0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 5646.0, "y": 271990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651oka9io6g00dpsprg", "version": " Standard Range Plus Facelift (Autopilot)", "x": 4757.5, "y": 302990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651n3q9io6g00dpsmp0", "version": " Standard Range RWD (Autopilot)", "x": 4925.3, "y": 360990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d69l6bi9io6g00e5mtv0", "version": "Long Range AWD Facelift (Autopilot)", "x": 2307.7, "y": 376990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6287nq9io6g00fs0dsg", "version": " Long Range AWD (Autopilot)", "x": 4676.8, "y": 407990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6c7lsa9io6g00ad3k1g", "version": "Performance AWD (Autopilot)", "x": 2854.6, "y": 478990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d51emia9io6g00btatmg", "version": "Long Range AWD Facelift (Autopilot)", "x": 4253.7, "y": 338990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d62aap29io6g00bpcdng", "version": "Long Range AWD Highland (Autopilot)", "x": 2756.2, "y": 456990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tiim29io6g00bf2a80", "version": "Long Range AWD (Autopilot)", "x": 7097.3, "y": 377990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tpli29io6g00dqbgj0", "version": "Standard Range RWD (Autopilot)", "x": 6324.2, "y": 334990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d52nsbi9io6g00ethqrg", "version": "Standard Range RWD (Autopilot)", "x": 3485.9, "y": 355990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d54kdga9io6g00ck58bg", "version": "Long Range AWD (Autopilot)", "x": 6988.9, "y": 377990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d64qh0q9io6g00bqlrk0", "version": "Long Range AWD Facelift (Autopilot)", "x": 8541.4, "y": 313490, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d4u46o29io6g00dip170", "version": "Performance AWD (Autopilot)", "x": 4572.6, "y": 407990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69glqa9io6g00aqq7jg", "version": "Long Range RWD Highland (Autopilot)", "x": 300.8, "y": 462990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d5fm0ra9io6g00de7040", "version": " Long Range AWD (Autopilot)", "x": 10829.7, "y": 234990, "year": 2019}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d65ere29io6g009m83j0", "version": " Long Range AWD (Autopilot)", "x": 1581.6, "y": 497990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d64umpq9io6g00ehv1b0", "version": " Long Range AWD Highland (Uppgraderad Autopilot)", "x": 5824.7, "y": 435990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d667v7i9io6g008if220", "version": "Long Range AWD (Autopilot)", "x": 4442.5, "y": 446990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5r3c129io6g00d351cg", "version": "Performance AWD Facelift (Autopilot)", "x": 6545.4, "y": 328990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5qeir29io6g00d2sq10", "version": "Long Range AWD Facelift (Autopilot)", "x": 8565.0, "y": 316990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d3ovp8a9io6g00ai2460", "version": "Long Range AWD Facelift (Autopilot)", "x": 7765.0, "y": 353990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d54h1629io6g00aif0vg", "version": "Long Range AWD (Autopilot)", "x": 6731.5, "y": 392990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69dpoa9io6g00e09u2g", "version": "Long Range RWD Highland (Autopilot)", "x": 980.4, "y": 467990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651ns29io6g00dpsobg", "version": "Long Range AWD (Autopilot)", "x": 2488.2, "y": 475990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d5ed1ma9io6g00abo7i0", "version": "Long Range AWD (Autopilot)", "x": 10043.2, "y": 264990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651jba9io6g00dpsdqg", "version": "Standard Range Plus Facelift (Autopilot)", "x": 3743.4, "y": 311990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5pmlea9io6g00cd4980", "version": "Performance AWD (Uppgraderad Autopilot)", "x": 9512.0, "y": 292990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d61m6kq9io6g00a8qss0", "version": "Long Range AWD (Autopilot)", "x": 5761.7, "y": 266990, "year": 2019}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d66uodq9io6g00847fkg", "version": "Performance AWD (Autopilot)", "x": 2679.1, "y": 452990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6286gq9io6g00fs0apg", "version": " Long Range AWD (Autopilot)", "x": 2543.5, "y": 475990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d5v12ti9io6g0087p1og", "version": "Long Range AWD Facelift (Autopilot)", "x": 6038.8, "y": 352990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5s9ena9io6g008sjpf0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 8206.9, "y": 275990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d5icp3a9io6g00f4ovu0", "version": " Long Range RWD (Autopilot)", "x": 11164.0, "y": 353990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d64teaq9io6g00bqgvpg", "version": " Long Range AWD Premium Juniper (Autopilot)", "x": 2315.2, "y": 619990, "year": 2025}]}
+        {"averages": {"Tesla Model 3": {"counts": [3, 2, 4, 3, 8, 4, 2], "mileages": [8822.5, 9720.9, 6489.3, 8437.8, 5268.6, 4565.7, 640.6], "prices": [251657, 245490, 308240, 302157, 326115, 411490, 465490], "years": [2019, 2020, 2021, 2022, 2023, 2024, 2025]}, "Tesla Model Y": {"counts": [3, 11, 7, 3], "mileages": [4887.6, 5522.9, 4588.9, 2518.4], "prices": [394657, 390626, 436276, 532657], "years": [2022, 2023, 2024, 2025]}}, "daily_additions": {"counts": [1, 5, 2, 4, 4, 5, 2, 3, 3, 1, 1, 6, 6, 7], "dates": ["2026-02-19", "2026-02-20", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06"]}, "market_stats": {}, "price_trends": {}, "scatter": {"Tesla Model 3": [{"kr_mil": 53, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6a5nbq9io6g00930jr0", "version": "Standard Range Highland (Autopilot)", "x": 6707.4, "y": 357990, "year": 2024}, {"kr_mil": 133, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6e7gsq9io6g009tag2g", "version": "Standard Range Highland (Autopilot)", "x": 2974.5, "y": 394990, "year": 2024}, {"kr_mil": 48, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d4o51da9io6g00fboiqg", "version": "Standard Range (Autopilot)", "x": 6504.2, "y": 309990, "year": 2023}, {"kr_mil": 24, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d64ceaa9io6g00asad70", "version": "Standard Range Plus (Autopilot)", "x": 9398.5, "y": 225990, "year": 2020}, {"kr_mil": 54, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d6a5mja9io6g00930g3g", "version": " Standard Range (Autopilot)", "x": 5567.3, "y": 299990, "year": 2023}, {"kr_mil": 55, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651iiq9io6g00dpsc4g", "version": " Standard Range (Autopilot)", "x": 5465.2, "y": 299990, "year": 2023}, {"kr_mil": 26, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d41kooa9io6g00aing3g", "version": "Long Range AWD (Autopilot)", "x": 9876.1, "y": 252990, "year": 2019}, {"kr_mil": 48, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d6131bi9io6g0092irl0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 5646.0, "y": 271990, "year": 2021}, {"kr_mil": 64, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651oka9io6g00dpsprg", "version": " Standard Range Plus Facelift (Autopilot)", "x": 4757.5, "y": 302990, "year": 2023}, {"kr_mil": 163, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d69l6bi9io6g00e5mtv0", "version": "Long Range AWD Facelift (Autopilot)", "x": 2307.7, "y": 376990, "year": 2023}, {"kr_mil": 80, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d51emia9io6g00btatmg", "version": "Long Range AWD Facelift (Autopilot)", "x": 4253.7, "y": 338990, "year": 2021}, {"kr_mil": 166, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d62aap29io6g00bpcdng", "version": "Long Range AWD Highland (Autopilot)", "x": 2756.2, "y": 456990, "year": 2024}, {"kr_mil": 37, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d64qh0q9io6g00bqlrk0", "version": "Long Range AWD Facelift (Autopilot)", "x": 8541.4, "y": 313490, "year": 2022}, {"kr_mil": 1539, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69glqa9io6g00aqq7jg", "version": "Long Range RWD Highland (Autopilot)", "x": 300.8, "y": 462990, "year": 2025}, {"kr_mil": 22, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d5fm0ra9io6g00de7040", "version": " Long Range AWD (Autopilot)", "x": 10829.7, "y": 234990, "year": 2019}, {"kr_mil": 75, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d64umpq9io6g00ehv1b0", "version": " Long Range AWD Highland (Uppgraderad Autopilot)", "x": 5824.7, "y": 435990, "year": 2024}, {"kr_mil": 50, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5r3c129io6g00d351cg", "version": "Performance AWD Facelift (Autopilot)", "x": 6545.4, "y": 328990, "year": 2021}, {"kr_mil": 37, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5qeir29io6g00d2sq10", "version": "Long Range AWD Facelift (Autopilot)", "x": 8565.0, "y": 316990, "year": 2022}, {"kr_mil": 46, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d3ovp8a9io6g00ai2460", "version": "Long Range AWD Facelift (Autopilot)", "x": 7765.0, "y": 353990, "year": 2023}, {"kr_mil": 477, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69dpoa9io6g00e09u2g", "version": "Long Range RWD Highland (Autopilot)", "x": 980.4, "y": 467990, "year": 2025}, {"kr_mil": 26, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d5ed1ma9io6g00abo7i0", "version": "Long Range AWD (Autopilot)", "x": 10043.2, "y": 264990, "year": 2020}, {"kr_mil": 83, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651jba9io6g00dpsdqg", "version": "Standard Range Plus Facelift (Autopilot)", "x": 3743.4, "y": 311990, "year": 2023}, {"kr_mil": 31, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5pmlea9io6g00cd4980", "version": "Performance AWD (Uppgraderad Autopilot)", "x": 9512.0, "y": 292990, "year": 2021}, {"kr_mil": 46, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d61m6kq9io6g00a8qss0", "version": "Long Range AWD (Autopilot)", "x": 5761.7, "y": 266990, "year": 2019}, {"kr_mil": 58, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d5v12ti9io6g0087p1og", "version": "Long Range AWD Facelift (Autopilot)", "x": 6038.8, "y": 352990, "year": 2023}, {"kr_mil": 34, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5s9ena9io6g008sjpf0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 8206.9, "y": 275990, "year": 2022}], "Tesla Model Y": [{"kr_mil": 124, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651k3q9io6g00dpsfc0", "version": "Long Range AWD (Autopilot)", "x": 3704.5, "y": 460990, "year": 2024}, {"kr_mil": 91, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6ekpha9io6g00ctd1gg", "version": " Performance (Autopilot)", "x": 4674.5, "y": 426990, "year": 2023}, {"kr_mil": 128, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d6c605q9io6g00bnn040", "version": " Long Range AWD (Autopilot)", "x": 3101.3, "y": 397990, "year": 2022}, {"kr_mil": 131, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d5dtkoq9io6g00dh23pg", "version": "Long Range AWD (Autopilot)", "x": 3658.4, "y": 479990, "year": 2025}, {"kr_mil": 58, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6eo7jq9io6g008k5p80", "version": "Long Range AWD (Autopilot)", "x": 6830.8, "y": 394990, "year": 2023}, {"kr_mil": 74, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6emg3q9io6g008jvc60", "version": " Long Range AWD (Autopilot)", "x": 5409.4, "y": 399990, "year": 2023}, {"kr_mil": 60, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6489ki9io6g00as75gg", "version": " Performance (Autopilot)", "x": 6874.8, "y": 411990, "year": 2023}, {"kr_mil": 57, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6c8cv29io6g00ad5l9g", "version": "Standard Range RWD (Autopilot)", "x": 5967.8, "y": 339990, "year": 2023}, {"kr_mil": 73, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651n3q9io6g00dpsmp0", "version": " Standard Range RWD (Autopilot)", "x": 4925.3, "y": 360990, "year": 2024}, {"kr_mil": 87, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6287nq9io6g00fs0dsg", "version": " Long Range AWD (Autopilot)", "x": 4676.8, "y": 407990, "year": 2023}, {"kr_mil": 168, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6c7lsa9io6g00ad3k1g", "version": "Performance AWD (Autopilot)", "x": 2854.6, "y": 478990, "year": 2024}, {"kr_mil": 53, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tiim29io6g00bf2a80", "version": "Long Range AWD (Autopilot)", "x": 7097.3, "y": 377990, "year": 2023}, {"kr_mil": 53, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tpli29io6g00dqbgj0", "version": "Standard Range RWD (Autopilot)", "x": 6324.2, "y": 334990, "year": 2023}, {"kr_mil": 102, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d52nsbi9io6g00ethqrg", "version": "Standard Range RWD (Autopilot)", "x": 3485.9, "y": 355990, "year": 2023}, {"kr_mil": 54, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d54kdga9io6g00ck58bg", "version": "Long Range AWD (Autopilot)", "x": 6988.9, "y": 377990, "year": 2022}, {"kr_mil": 89, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d4u46o29io6g00dip170", "version": "Performance AWD (Autopilot)", "x": 4572.6, "y": 407990, "year": 2022}, {"kr_mil": 315, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d65ere29io6g009m83j0", "version": " Long Range AWD (Autopilot)", "x": 1581.6, "y": 497990, "year": 2025}, {"kr_mil": 101, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d667v7i9io6g008if220", "version": "Long Range AWD (Autopilot)", "x": 4442.5, "y": 446990, "year": 2024}, {"kr_mil": 58, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d54h1629io6g00aif0vg", "version": "Long Range AWD (Autopilot)", "x": 6731.5, "y": 392990, "year": 2023}, {"kr_mil": 191, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651ns29io6g00dpsobg", "version": "Long Range AWD (Autopilot)", "x": 2488.2, "y": 475990, "year": 2024}, {"kr_mil": 169, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d66uodq9io6g00847fkg", "version": "Performance AWD (Autopilot)", "x": 2679.1, "y": 452990, "year": 2023}, {"kr_mil": 187, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6286gq9io6g00fs0apg", "version": " Long Range AWD (Autopilot)", "x": 2543.5, "y": 475990, "year": 2024}, {"kr_mil": 32, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d5icp3a9io6g00f4ovu0", "version": " Long Range RWD (Autopilot)", "x": 11164.0, "y": 353990, "year": 2024}, {"kr_mil": 268, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d64teaq9io6g00bqgvpg", "version": " Long Range AWD Premium Juniper (Autopilot)", "x": 2315.2, "y": 619990, "year": 2025}]}, "scatter_all": [{"kr_mil": 124, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651k3q9io6g00dpsfc0", "version": "Long Range AWD (Autopilot)", "x": 3704.5, "y": 460990, "year": 2024}, {"kr_mil": 91, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6ekpha9io6g00ctd1gg", "version": " Performance (Autopilot)", "x": 4674.5, "y": 426990, "year": 2023}, {"kr_mil": 128, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d6c605q9io6g00bnn040", "version": " Long Range AWD (Autopilot)", "x": 3101.3, "y": 397990, "year": 2022}, {"kr_mil": 53, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6a5nbq9io6g00930jr0", "version": "Standard Range Highland (Autopilot)", "x": 6707.4, "y": 357990, "year": 2024}, {"kr_mil": 133, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6e7gsq9io6g009tag2g", "version": "Standard Range Highland (Autopilot)", "x": 2974.5, "y": 394990, "year": 2024}, {"kr_mil": 48, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d4o51da9io6g00fboiqg", "version": "Standard Range (Autopilot)", "x": 6504.2, "y": 309990, "year": 2023}, {"kr_mil": 24, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d64ceaa9io6g00asad70", "version": "Standard Range Plus (Autopilot)", "x": 9398.5, "y": 225990, "year": 2020}, {"kr_mil": 54, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d6a5mja9io6g00930g3g", "version": " Standard Range (Autopilot)", "x": 5567.3, "y": 299990, "year": 2023}, {"kr_mil": 131, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d5dtkoq9io6g00dh23pg", "version": "Long Range AWD (Autopilot)", "x": 3658.4, "y": 479990, "year": 2025}, {"kr_mil": 58, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6eo7jq9io6g008k5p80", "version": "Long Range AWD (Autopilot)", "x": 6830.8, "y": 394990, "year": 2023}, {"kr_mil": 55, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651iiq9io6g00dpsc4g", "version": " Standard Range (Autopilot)", "x": 5465.2, "y": 299990, "year": 2023}, {"kr_mil": 74, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6emg3q9io6g008jvc60", "version": " Long Range AWD (Autopilot)", "x": 5409.4, "y": 399990, "year": 2023}, {"kr_mil": 60, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6489ki9io6g00as75gg", "version": " Performance (Autopilot)", "x": 6874.8, "y": 411990, "year": 2023}, {"kr_mil": 57, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6c8cv29io6g00ad5l9g", "version": "Standard Range RWD (Autopilot)", "x": 5967.8, "y": 339990, "year": 2023}, {"kr_mil": 26, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d41kooa9io6g00aing3g", "version": "Long Range AWD (Autopilot)", "x": 9876.1, "y": 252990, "year": 2019}, {"kr_mil": 48, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d6131bi9io6g0092irl0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 5646.0, "y": 271990, "year": 2021}, {"kr_mil": 64, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651oka9io6g00dpsprg", "version": " Standard Range Plus Facelift (Autopilot)", "x": 4757.5, "y": 302990, "year": 2023}, {"kr_mil": 73, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651n3q9io6g00dpsmp0", "version": " Standard Range RWD (Autopilot)", "x": 4925.3, "y": 360990, "year": 2024}, {"kr_mil": 163, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d69l6bi9io6g00e5mtv0", "version": "Long Range AWD Facelift (Autopilot)", "x": 2307.7, "y": 376990, "year": 2023}, {"kr_mil": 87, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6287nq9io6g00fs0dsg", "version": " Long Range AWD (Autopilot)", "x": 4676.8, "y": 407990, "year": 2023}, {"kr_mil": 168, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6c7lsa9io6g00ad3k1g", "version": "Performance AWD (Autopilot)", "x": 2854.6, "y": 478990, "year": 2024}, {"kr_mil": 80, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d51emia9io6g00btatmg", "version": "Long Range AWD Facelift (Autopilot)", "x": 4253.7, "y": 338990, "year": 2021}, {"kr_mil": 166, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d62aap29io6g00bpcdng", "version": "Long Range AWD Highland (Autopilot)", "x": 2756.2, "y": 456990, "year": 2024}, {"kr_mil": 53, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tiim29io6g00bf2a80", "version": "Long Range AWD (Autopilot)", "x": 7097.3, "y": 377990, "year": 2023}, {"kr_mil": 53, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tpli29io6g00dqbgj0", "version": "Standard Range RWD (Autopilot)", "x": 6324.2, "y": 334990, "year": 2023}, {"kr_mil": 102, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d52nsbi9io6g00ethqrg", "version": "Standard Range RWD (Autopilot)", "x": 3485.9, "y": 355990, "year": 2023}, {"kr_mil": 54, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d54kdga9io6g00ck58bg", "version": "Long Range AWD (Autopilot)", "x": 6988.9, "y": 377990, "year": 2022}, {"kr_mil": 37, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d64qh0q9io6g00bqlrk0", "version": "Long Range AWD Facelift (Autopilot)", "x": 8541.4, "y": 313490, "year": 2022}, {"kr_mil": 89, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d4u46o29io6g00dip170", "version": "Performance AWD (Autopilot)", "x": 4572.6, "y": 407990, "year": 2022}, {"kr_mil": 1539, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69glqa9io6g00aqq7jg", "version": "Long Range RWD Highland (Autopilot)", "x": 300.8, "y": 462990, "year": 2025}, {"kr_mil": 22, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d5fm0ra9io6g00de7040", "version": " Long Range AWD (Autopilot)", "x": 10829.7, "y": 234990, "year": 2019}, {"kr_mil": 315, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d65ere29io6g009m83j0", "version": " Long Range AWD (Autopilot)", "x": 1581.6, "y": 497990, "year": 2025}, {"kr_mil": 75, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d64umpq9io6g00ehv1b0", "version": " Long Range AWD Highland (Uppgraderad Autopilot)", "x": 5824.7, "y": 435990, "year": 2024}, {"kr_mil": 101, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d667v7i9io6g008if220", "version": "Long Range AWD (Autopilot)", "x": 4442.5, "y": 446990, "year": 2024}, {"kr_mil": 50, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5r3c129io6g00d351cg", "version": "Performance AWD Facelift (Autopilot)", "x": 6545.4, "y": 328990, "year": 2021}, {"kr_mil": 37, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5qeir29io6g00d2sq10", "version": "Long Range AWD Facelift (Autopilot)", "x": 8565.0, "y": 316990, "year": 2022}, {"kr_mil": 46, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d3ovp8a9io6g00ai2460", "version": "Long Range AWD Facelift (Autopilot)", "x": 7765.0, "y": 353990, "year": 2023}, {"kr_mil": 58, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d54h1629io6g00aif0vg", "version": "Long Range AWD (Autopilot)", "x": 6731.5, "y": 392990, "year": 2023}, {"kr_mil": 477, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69dpoa9io6g00e09u2g", "version": "Long Range RWD Highland (Autopilot)", "x": 980.4, "y": 467990, "year": 2025}, {"kr_mil": 191, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651ns29io6g00dpsobg", "version": "Long Range AWD (Autopilot)", "x": 2488.2, "y": 475990, "year": 2024}, {"kr_mil": 26, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d5ed1ma9io6g00abo7i0", "version": "Long Range AWD (Autopilot)", "x": 10043.2, "y": 264990, "year": 2020}, {"kr_mil": 83, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651jba9io6g00dpsdqg", "version": "Standard Range Plus Facelift (Autopilot)", "x": 3743.4, "y": 311990, "year": 2023}, {"kr_mil": 31, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5pmlea9io6g00cd4980", "version": "Performance AWD (Uppgraderad Autopilot)", "x": 9512.0, "y": 292990, "year": 2021}, {"kr_mil": 46, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d61m6kq9io6g00a8qss0", "version": "Long Range AWD (Autopilot)", "x": 5761.7, "y": 266990, "year": 2019}, {"kr_mil": 169, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d66uodq9io6g00847fkg", "version": "Performance AWD (Autopilot)", "x": 2679.1, "y": 452990, "year": 2023}, {"kr_mil": 187, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6286gq9io6g00fs0apg", "version": " Long Range AWD (Autopilot)", "x": 2543.5, "y": 475990, "year": 2024}, {"kr_mil": 58, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d5v12ti9io6g0087p1og", "version": "Long Range AWD Facelift (Autopilot)", "x": 6038.8, "y": 352990, "year": 2023}, {"kr_mil": 34, "model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5s9ena9io6g008sjpf0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 8206.9, "y": 275990, "year": 2022}, {"kr_mil": 32, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d5icp3a9io6g00f4ovu0", "version": " Long Range RWD (Autopilot)", "x": 11164.0, "y": 353990, "year": 2024}, {"kr_mil": 268, "model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d64teaq9io6g00bqgvpg", "version": " Long Range AWD Premium Juniper (Autopilot)", "x": 2315.2, "y": 619990, "year": 2025}]}
     </script>
 
     <script>
@@ -209,6 +234,95 @@
 
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
+
+            // Find the "golden car": most underpriced relative to market.
+            // Fits price ~ year + mileage via linear regression, then picks
+            // the car with the largest negative residual (actual - expected).
+            function findGoldenCar(points) {
+                if (!points || points.length < 3) return null;
+                const valid = points.filter(p => p.year && p.x != null && p.y != null);
+                if (valid.length < 3) return null;
+
+                const n = valid.length;
+                // Variables: x1 = year, x2 = mileage, y = price
+                let sx1 = 0, sx2 = 0, sy = 0;
+                let sx1x1 = 0, sx2x2 = 0, sx1x2 = 0;
+                let sx1y = 0, sx2y = 0;
+
+                valid.forEach(p => {
+                    const x1 = p.year, x2 = p.x, y = p.y;
+                    sx1 += x1; sx2 += x2; sy += y;
+                    sx1x1 += x1 * x1; sx2x2 += x2 * x2; sx1x2 += x1 * x2;
+                    sx1y += x1 * y; sx2y += x2 * y;
+                });
+
+                // Solve normal equations for y = a*x1 + b*x2 + c
+                // Using Cramer's rule on the 3x3 system
+                const A = [
+                    [sx1x1, sx1x2, sx1],
+                    [sx1x2, sx2x2, sx2],
+                    [sx1,   sx2,   n  ]
+                ];
+                const B = [sx1y, sx2y, sy];
+
+                function det3(m) {
+                    return m[0][0] * (m[1][1]*m[2][2] - m[1][2]*m[2][1])
+                         - m[0][1] * (m[1][0]*m[2][2] - m[1][2]*m[2][0])
+                         + m[0][2] * (m[1][0]*m[2][1] - m[1][1]*m[2][0]);
+                }
+
+                const D = det3(A);
+                if (Math.abs(D) < 1e-10) return null;
+
+                const Da = det3([
+                    [B[0], A[0][1], A[0][2]],
+                    [B[1], A[1][1], A[1][2]],
+                    [B[2], A[2][1], A[2][2]]
+                ]);
+                const Db = det3([
+                    [A[0][0], B[0], A[0][2]],
+                    [A[1][0], B[1], A[1][2]],
+                    [A[2][0], B[2], A[2][2]]
+                ]);
+                const Dc = det3([
+                    [A[0][0], A[0][1], B[0]],
+                    [A[1][0], A[1][1], B[1]],
+                    [A[2][0], A[2][1], B[2]]
+                ]);
+
+                const a = Da / D; // year coefficient
+                const b = Db / D; // mileage coefficient
+                const c = Dc / D; // intercept
+
+                // Find car with largest negative residual (most underpriced)
+                let best = null;
+                let bestResidual = Infinity;
+                valid.forEach(pt => {
+                    const expected = a * pt.year + b * pt.x + c;
+                    const residual = pt.y - expected;
+                    if (residual < bestResidual) {
+                        bestResidual = residual;
+                        best = pt;
+                    }
+                });
+                return best;
+            }
+
+            function goldenDataset(point) {
+                if (!point) return null;
+                return {
+                    label: 'Gyllene bilen',
+                    data: [point],
+                    backgroundColor: '#ffd700',
+                    borderColor: '#ffd700',
+                    borderWidth: 3,
+                    pointRadius: 12,
+                    pointHoverRadius: 15,
+                    pointStyle: 'star',
+                    pointHoverBackgroundColor: '#ffd700',
+                    order: 0,
+                };
+            }
 
             // 1. Render Daily Additions
             if (analyticsData.daily_additions && analyticsData.daily_additions.dates.length > 0) {
@@ -243,7 +357,117 @@
                 });
             }
 
-            // 2. Render Aggregated Scatter (all models) with year filters
+            // 2. Price trends over time
+            const trendColors = {
+                'Tesla Model 3': '#38bdf8',
+                'Tesla Model Y': '#f472b6',
+                'Tesla Model S': '#34d399',
+                'Tesla Model X': '#fbbf24',
+            };
+            if (analyticsData.price_trends && Object.keys(analyticsData.price_trends).length > 0) {
+                const trendDatasets = [];
+                for (const [model, data] of Object.entries(analyticsData.price_trends)) {
+                    const color = trendColors[model] || '#a78bfa';
+                    trendDatasets.push({
+                        label: `${model} (snitt)`,
+                        data: data.avg,
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 3,
+                    });
+                    trendDatasets.push({
+                        label: `${model} (median)`,
+                        data: data.median,
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.3,
+                        pointRadius: 3,
+                    });
+                }
+                // Use dates from the first model
+                const firstModel = Object.values(analyticsData.price_trends)[0];
+                const ctxTrend = document.getElementById('chart-price-trends').getContext('2d');
+                new Chart(ctxTrend, {
+                    type: 'line',
+                    data: { labels: firstModel.dates, datasets: trendDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return `${ctx.dataset.label}: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 3. Market stats – time on market
+            if (analyticsData.market_stats && Object.keys(analyticsData.market_stats).length > 0) {
+                const models = Object.keys(analyticsData.market_stats).sort();
+                const days = models.map(m => analyticsData.market_stats[m].avg_days_on_market || 0);
+                const soldCounts = models.map(m => analyticsData.market_stats[m].sold_count || 0);
+                const barColors = models.map(m => trendColors[m] || '#a78bfa');
+
+                const ctxMarket = document.getElementById('chart-market-stats').getContext('2d');
+                new Chart(ctxMarket, {
+                    type: 'bar',
+                    data: {
+                        labels: models,
+                        datasets: [{
+                            label: 'Snittdagar på marknaden',
+                            data: days,
+                            backgroundColor: barColors.map(c => c + '99'),
+                            borderColor: barColors,
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    afterLabel: function (ctx) {
+                                        return `Antal sålda/borttagna: ${soldCounts[ctx.dataIndex]}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Dagar' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 5. Render Aggregated Scatter (all models) with year filters
             if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
                 const modelColors = {
                     'Tesla Model 3': '#38bdf8',
@@ -285,7 +509,7 @@
                         if (!byModel[m]) byModel[m] = [];
                         byModel[m].push(pt);
                     });
-                    return Object.keys(byModel).sort().map(model => {
+                    const datasets = Object.keys(byModel).sort().map(model => {
                         const color = modelColors[model] || defaultColor;
                         return {
                             label: model,
@@ -297,6 +521,9 @@
                             pointHoverBackgroundColor: '#fff',
                         };
                     });
+                    const golden = goldenDataset(findGoldenCar(points));
+                    if (golden) datasets.push(golden);
+                    return datasets;
                 }
 
                 const ctxAll = document.getElementById('chart-scatter-all').getContext('2d');
@@ -319,16 +546,22 @@
                                 titleColor: '#f8fafc',
                                 padding: 15,
                                 callbacks: {
+                                    title: function (items) {
+                                        if (items.length && items[0].dataset.label === 'Gyllene bilen') return 'Gyllene bilen';
+                                        return '';
+                                    },
                                     label: function (ctx) {
                                         const pt = ctx.raw;
                                         const price = new Intl.NumberFormat('sv-SE').format(pt.y);
                                         const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
-                                        return [
+                                        const lines = [
                                             `${pt.model} – ${pt.year} ${pt.version}`,
                                             `Pris: ${price} kr`,
                                             `Miltal: ${mil} mil`,
-                                            `Klicka för att öppna annonsen!`
                                         ];
+                                        if (pt.kr_mil) lines.push(`Kr/mil: ${new Intl.NumberFormat('sv-SE').format(pt.kr_mil)}`);
+                                        lines.push(`Klicka för att öppna annonsen!`);
+                                        return lines;
                                     }
                                 }
                             }
@@ -355,7 +588,7 @@
                 renderFilterButtons();
             }
 
-            // 3. Render Model Specific Charts
+            // 6. Render Model Specific Charts
             const modelsContainer = document.getElementById('models-container');
 
             for (const modelName of Object.keys(analyticsData.averages)) {
@@ -475,13 +708,15 @@
                     return {
                         label: year,
                         data: datasetsByYear[year],
-                        backgroundColor: colors[idx % colors.length] + '99', // adding transparency
+                        backgroundColor: colors[idx % colors.length] + '99',
                         borderColor: colors[idx % colors.length],
                         pointRadius: 6,
                         pointHoverRadius: 9,
                         pointHoverBackgroundColor: '#fff',
                     }
                 });
+                const goldenModel = goldenDataset(findGoldenCar(scatterData));
+                if (goldenModel) scatterDatasets.push(goldenModel);
 
                 const ctxScatter = document.getElementById(`scatter-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
                 new Chart(ctxScatter, {
@@ -503,16 +738,22 @@
                                 titleColor: '#f8fafc',
                                 padding: 15,
                                 callbacks: {
+                                    title: function (items) {
+                                        if (items.length && items[0].dataset.label === 'Gyllene bilen') return 'Gyllene bilen';
+                                        return '';
+                                    },
                                     label: function (ctx) {
                                         const pt = ctx.raw;
                                         const price = new Intl.NumberFormat('sv-SE').format(pt.y);
                                         const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
-                                        return [
+                                        const lines = [
                                             `${pt.year} ${pt.version}`,
                                             `Pris: ${price} kr`,
                                             `Miltal: ${mil} mil`,
-                                            `Klicka för att öppna annonsen!`
                                         ];
+                                        if (pt.kr_mil) lines.push(`Kr/mil: ${new Intl.NumberFormat('sv-SE').format(pt.kr_mil)}`);
+                                        lines.push(`Klicka för att öppna annonsen!`);
+                                        return lines;
                                     }
                                 }
                             }
