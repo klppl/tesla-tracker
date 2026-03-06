@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla Analysverktyg</title>
+    <!-- Modern font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-overlay: rgba(56, 189, 248, 0.2);
+            --secondary-accent: #818cf8;
+            --tertiary-accent: #f472b6;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, var(--accent), var(--secondary-accent), var(--tertiary-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1600px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 10px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+            color: var(--text-primary);
+        }
+
+        .chart-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 20px 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Scatter plot pointer on canvas */
+        .chart-container.scatter-chart canvas {
+            cursor: pointer;
+        }
+
+        .year-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .year-filter-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .year-filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .year-filter-btn.active {
+            background: var(--accent-overlay);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+            width: 100%;
+        }
+
+        @media (max-width: 1000px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Tesla Analytics</h1>
+    <p class="subtitle">Hitta bästa bilen för pengarna</p>
+
+    <div class="dashboard-container" id="dashboard">
+        
+
+        <!-- Aggregerad fynd-radar -->
+        <div class="chart-card">
+            <h2 class="chart-title">Fynd-radar – Alla modeller</h2>
+            <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
+            <div class="year-filters" id="year-filters"></div>
+            <div class="chart-container scatter-chart">
+                <canvas id="chart-scatter-all"></canvas>
+            </div>
+        </div>
+
+        <!-- Multi-model injection point -->
+        <div id="models-container"></div>
+
+        <!-- Global Trends -->
+        <div class="chart-card" style="margin-top: 20px;">
+            <h2 class="chart-title">Nya annonser per dag</h2>
+            <p class="chart-subtitle">Antal nyligen listade Teslor per datum</p>
+            <div class="chart-container">
+                <canvas id="chart-daily-additions"></canvas>
+            </div>
+        </div>
+
+        
+    </div>
+
+    <!-- Inject data securely to JS -->
+    <script id="chart-data" type="application/json">
+        {"averages": {"Tesla Model 3": {"counts": [3, 2, 4, 3, 8, 4, 2], "mileages": [8822.5, 9720.9, 6489.3, 8437.8, 5268.6, 4565.7, 640.6], "prices": [251657, 245490, 308240, 302157, 326115, 411490, 465490], "years": [2019, 2020, 2021, 2022, 2023, 2024, 2025]}, "Tesla Model Y": {"counts": [3, 11, 7, 3], "mileages": [4887.6, 5522.9, 4588.9, 2518.4], "prices": [394657, 390626, 436276, 532657], "years": [2022, 2023, 2024, 2025]}}, "daily_additions": {"counts": [1, 5, 2, 4, 4, 5, 2, 3, 3, 1, 1, 6, 6, 7], "dates": ["2026-02-19", "2026-02-20", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06"]}, "scatter": {"Tesla Model 3": [{"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6a5nbq9io6g00930jr0", "version": "Standard Range Highland (Autopilot)", "x": 6707.4, "y": 357990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6e7gsq9io6g009tag2g", "version": "Standard Range Highland (Autopilot)", "x": 2974.5, "y": 394990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d4o51da9io6g00fboiqg", "version": "Standard Range (Autopilot)", "x": 6504.2, "y": 309990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d64ceaa9io6g00asad70", "version": "Standard Range Plus (Autopilot)", "x": 9398.5, "y": 225990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d6a5mja9io6g00930g3g", "version": " Standard Range (Autopilot)", "x": 5567.3, "y": 299990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651iiq9io6g00dpsc4g", "version": " Standard Range (Autopilot)", "x": 5465.2, "y": 299990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d41kooa9io6g00aing3g", "version": "Long Range AWD (Autopilot)", "x": 9876.1, "y": 252990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d6131bi9io6g0092irl0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 5646.0, "y": 271990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651oka9io6g00dpsprg", "version": " Standard Range Plus Facelift (Autopilot)", "x": 4757.5, "y": 302990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d69l6bi9io6g00e5mtv0", "version": "Long Range AWD Facelift (Autopilot)", "x": 2307.7, "y": 376990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d51emia9io6g00btatmg", "version": "Long Range AWD Facelift (Autopilot)", "x": 4253.7, "y": 338990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d62aap29io6g00bpcdng", "version": "Long Range AWD Highland (Autopilot)", "x": 2756.2, "y": 456990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d64qh0q9io6g00bqlrk0", "version": "Long Range AWD Facelift (Autopilot)", "x": 8541.4, "y": 313490, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69glqa9io6g00aqq7jg", "version": "Long Range RWD Highland (Autopilot)", "x": 300.8, "y": 462990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d5fm0ra9io6g00de7040", "version": " Long Range AWD (Autopilot)", "x": 10829.7, "y": 234990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d64umpq9io6g00ehv1b0", "version": " Long Range AWD Highland (Uppgraderad Autopilot)", "x": 5824.7, "y": 435990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5r3c129io6g00d351cg", "version": "Performance AWD Facelift (Autopilot)", "x": 6545.4, "y": 328990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5qeir29io6g00d2sq10", "version": "Long Range AWD Facelift (Autopilot)", "x": 8565.0, "y": 316990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d3ovp8a9io6g00ai2460", "version": "Long Range AWD Facelift (Autopilot)", "x": 7765.0, "y": 353990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69dpoa9io6g00e09u2g", "version": "Long Range RWD Highland (Autopilot)", "x": 980.4, "y": 467990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d5ed1ma9io6g00abo7i0", "version": "Long Range AWD (Autopilot)", "x": 10043.2, "y": 264990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651jba9io6g00dpsdqg", "version": "Standard Range Plus Facelift (Autopilot)", "x": 3743.4, "y": 311990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5pmlea9io6g00cd4980", "version": "Performance AWD (Uppgraderad Autopilot)", "x": 9512.0, "y": 292990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d61m6kq9io6g00a8qss0", "version": "Long Range AWD (Autopilot)", "x": 5761.7, "y": 266990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d5v12ti9io6g0087p1og", "version": "Long Range AWD Facelift (Autopilot)", "x": 6038.8, "y": 352990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5s9ena9io6g008sjpf0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 8206.9, "y": 275990, "year": 2022}], "Tesla Model Y": [{"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651k3q9io6g00dpsfc0", "version": "Long Range AWD (Autopilot)", "x": 3704.5, "y": 460990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6ekpha9io6g00ctd1gg", "version": " Performance (Autopilot)", "x": 4674.5, "y": 426990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d6c605q9io6g00bnn040", "version": " Long Range AWD (Autopilot)", "x": 3101.3, "y": 397990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d5dtkoq9io6g00dh23pg", "version": "Long Range AWD (Autopilot)", "x": 3658.4, "y": 479990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6eo7jq9io6g008k5p80", "version": "Long Range AWD (Autopilot)", "x": 6830.8, "y": 394990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6emg3q9io6g008jvc60", "version": " Long Range AWD (Autopilot)", "x": 5409.4, "y": 399990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6489ki9io6g00as75gg", "version": " Performance (Autopilot)", "x": 6874.8, "y": 411990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6c8cv29io6g00ad5l9g", "version": "Standard Range RWD (Autopilot)", "x": 5967.8, "y": 339990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651n3q9io6g00dpsmp0", "version": " Standard Range RWD (Autopilot)", "x": 4925.3, "y": 360990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6287nq9io6g00fs0dsg", "version": " Long Range AWD (Autopilot)", "x": 4676.8, "y": 407990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6c7lsa9io6g00ad3k1g", "version": "Performance AWD (Autopilot)", "x": 2854.6, "y": 478990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tiim29io6g00bf2a80", "version": "Long Range AWD (Autopilot)", "x": 7097.3, "y": 377990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tpli29io6g00dqbgj0", "version": "Standard Range RWD (Autopilot)", "x": 6324.2, "y": 334990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d52nsbi9io6g00ethqrg", "version": "Standard Range RWD (Autopilot)", "x": 3485.9, "y": 355990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d54kdga9io6g00ck58bg", "version": "Long Range AWD (Autopilot)", "x": 6988.9, "y": 377990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d4u46o29io6g00dip170", "version": "Performance AWD (Autopilot)", "x": 4572.6, "y": 407990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d65ere29io6g009m83j0", "version": " Long Range AWD (Autopilot)", "x": 1581.6, "y": 497990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d667v7i9io6g008if220", "version": "Long Range AWD (Autopilot)", "x": 4442.5, "y": 446990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d54h1629io6g00aif0vg", "version": "Long Range AWD (Autopilot)", "x": 6731.5, "y": 392990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651ns29io6g00dpsobg", "version": "Long Range AWD (Autopilot)", "x": 2488.2, "y": 475990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d66uodq9io6g00847fkg", "version": "Performance AWD (Autopilot)", "x": 2679.1, "y": 452990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6286gq9io6g00fs0apg", "version": " Long Range AWD (Autopilot)", "x": 2543.5, "y": 475990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d5icp3a9io6g00f4ovu0", "version": " Long Range RWD (Autopilot)", "x": 11164.0, "y": 353990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d64teaq9io6g00bqgvpg", "version": " Long Range AWD Premium Juniper (Autopilot)", "x": 2315.2, "y": 619990, "year": 2025}]}, "scatter_all": [{"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651k3q9io6g00dpsfc0", "version": "Long Range AWD (Autopilot)", "x": 3704.5, "y": 460990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6ekpha9io6g00ctd1gg", "version": " Performance (Autopilot)", "x": 4674.5, "y": 426990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d6c605q9io6g00bnn040", "version": " Long Range AWD (Autopilot)", "x": 3101.3, "y": 397990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6a5nbq9io6g00930jr0", "version": "Standard Range Highland (Autopilot)", "x": 6707.4, "y": 357990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d6e7gsq9io6g009tag2g", "version": "Standard Range Highland (Autopilot)", "x": 2974.5, "y": 394990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d4o51da9io6g00fboiqg", "version": "Standard Range (Autopilot)", "x": 6504.2, "y": 309990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d64ceaa9io6g00asad70", "version": "Standard Range Plus (Autopilot)", "x": 9398.5, "y": 225990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d6a5mja9io6g00930g3g", "version": " Standard Range (Autopilot)", "x": 5567.3, "y": 299990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d5dtkoq9io6g00dh23pg", "version": "Long Range AWD (Autopilot)", "x": 3658.4, "y": 479990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6eo7jq9io6g008k5p80", "version": "Long Range AWD (Autopilot)", "x": 6830.8, "y": 394990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651iiq9io6g00dpsc4g", "version": " Standard Range (Autopilot)", "x": 5465.2, "y": 299990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6emg3q9io6g008jvc60", "version": " Long Range AWD (Autopilot)", "x": 5409.4, "y": 399990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6489ki9io6g00as75gg", "version": " Performance (Autopilot)", "x": 6874.8, "y": 411990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6c8cv29io6g00ad5l9g", "version": "Standard Range RWD (Autopilot)", "x": 5967.8, "y": 339990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d41kooa9io6g00aing3g", "version": "Long Range AWD (Autopilot)", "x": 9876.1, "y": 252990, "year": 2019}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d6131bi9io6g0092irl0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 5646.0, "y": 271990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651oka9io6g00dpsprg", "version": " Standard Range Plus Facelift (Autopilot)", "x": 4757.5, "y": 302990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651n3q9io6g00dpsmp0", "version": " Standard Range RWD (Autopilot)", "x": 4925.3, "y": 360990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d69l6bi9io6g00e5mtv0", "version": "Long Range AWD Facelift (Autopilot)", "x": 2307.7, "y": 376990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d6287nq9io6g00fs0dsg", "version": " Long Range AWD (Autopilot)", "x": 4676.8, "y": 407990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6c7lsa9io6g00ad3k1g", "version": "Performance AWD (Autopilot)", "x": 2854.6, "y": 478990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d51emia9io6g00btatmg", "version": "Long Range AWD Facelift (Autopilot)", "x": 4253.7, "y": 338990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d62aap29io6g00bpcdng", "version": "Long Range AWD Highland (Autopilot)", "x": 2756.2, "y": 456990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tiim29io6g00bf2a80", "version": "Long Range AWD (Autopilot)", "x": 7097.3, "y": 377990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d5tpli29io6g00dqbgj0", "version": "Standard Range RWD (Autopilot)", "x": 6324.2, "y": 334990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d52nsbi9io6g00ethqrg", "version": "Standard Range RWD (Autopilot)", "x": 3485.9, "y": 355990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d54kdga9io6g00ck58bg", "version": "Long Range AWD (Autopilot)", "x": 6988.9, "y": 377990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d64qh0q9io6g00bqlrk0", "version": "Long Range AWD Facelift (Autopilot)", "x": 8541.4, "y": 313490, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2022-d4u46o29io6g00dip170", "version": "Performance AWD (Autopilot)", "x": 4572.6, "y": 407990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69glqa9io6g00aqq7jg", "version": "Long Range RWD Highland (Autopilot)", "x": 300.8, "y": 462990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d5fm0ra9io6g00de7040", "version": " Long Range AWD (Autopilot)", "x": 10829.7, "y": 234990, "year": 2019}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d65ere29io6g009m83j0", "version": " Long Range AWD (Autopilot)", "x": 1581.6, "y": 497990, "year": 2025}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2024-d64umpq9io6g00ehv1b0", "version": " Long Range AWD Highland (Uppgraderad Autopilot)", "x": 5824.7, "y": 435990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d667v7i9io6g008if220", "version": "Long Range AWD (Autopilot)", "x": 4442.5, "y": 446990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5r3c129io6g00d351cg", "version": "Performance AWD Facelift (Autopilot)", "x": 6545.4, "y": 328990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5qeir29io6g00d2sq10", "version": "Long Range AWD Facelift (Autopilot)", "x": 8565.0, "y": 316990, "year": 2022}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d3ovp8a9io6g00ai2460", "version": "Long Range AWD Facelift (Autopilot)", "x": 7765.0, "y": 353990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d54h1629io6g00aif0vg", "version": "Long Range AWD (Autopilot)", "x": 6731.5, "y": 392990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2025-d69dpoa9io6g00e09u2g", "version": "Long Range RWD Highland (Autopilot)", "x": 980.4, "y": 467990, "year": 2025}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d651ns29io6g00dpsobg", "version": "Long Range AWD (Autopilot)", "x": 2488.2, "y": 475990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2020-d5ed1ma9io6g00abo7i0", "version": "Long Range AWD (Autopilot)", "x": 10043.2, "y": 264990, "year": 2020}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d651jba9io6g00dpsdqg", "version": "Standard Range Plus Facelift (Autopilot)", "x": 3743.4, "y": 311990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2021-d5pmlea9io6g00cd4980", "version": "Performance AWD (Uppgraderad Autopilot)", "x": 9512.0, "y": 292990, "year": 2021}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2019-d61m6kq9io6g00a8qss0", "version": "Long Range AWD (Autopilot)", "x": 5761.7, "y": 266990, "year": 2019}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2023-d66uodq9io6g00847fkg", "version": "Performance AWD (Autopilot)", "x": 2679.1, "y": 452990, "year": 2023}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d6286gq9io6g00fs0apg", "version": " Long Range AWD (Autopilot)", "x": 2543.5, "y": 475990, "year": 2024}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2023-d5v12ti9io6g0087p1og", "version": "Long Range AWD Facelift (Autopilot)", "x": 6038.8, "y": 352990, "year": 2023}, {"model": "Tesla Model 3", "url": "https://www.carla.se/bil/tesla-model-3-2022-d5s9ena9io6g008sjpf0", "version": "Standard Range Plus Facelift (Autopilot)", "x": 8206.9, "y": 275990, "year": 2022}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2024-d5icp3a9io6g00f4ovu0", "version": " Long Range RWD (Autopilot)", "x": 11164.0, "y": 353990, "year": 2024}, {"model": "Tesla Model Y", "url": "https://www.carla.se/bil/tesla-model-y-2025-d64teaq9io6g00bqgvpg", "version": " Long Range AWD Premium Juniper (Autopilot)", "x": 2315.2, "y": 619990, "year": 2025}]}
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const rawData = document.getElementById('chart-data').textContent;
+            if (!rawData || rawData.trim() === "{}") return;
+
+            const analyticsData = JSON.parse(rawData);
+
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            // 1. Render Daily Additions
+            if (analyticsData.daily_additions && analyticsData.daily_additions.dates.length > 0) {
+                const ctxDaily = document.getElementById('chart-daily-additions').getContext('2d');
+                new Chart(ctxDaily, {
+                    type: 'bar',
+                    data: {
+                        labels: analyticsData.daily_additions.dates,
+                        datasets: [{
+                            label: 'Nya bilar tillagda',
+                            data: analyticsData.daily_additions.counts,
+                            backgroundColor: 'rgba(244, 114, 182, 0.7)',
+                            borderColor: '#f472b6',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. Render Aggregated Scatter (all models) with year filters
+            if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
+                const modelColors = {
+                    'Tesla Model 3': '#38bdf8',
+                    'Tesla Model Y': '#f472b6',
+                    'Tesla Model S': '#34d399',
+                    'Tesla Model X': '#fbbf24',
+                };
+                const defaultColor = '#a78bfa';
+                const allPoints = analyticsData.scatter_all;
+
+                // Collect unique years and build filter buttons
+                const allYears = [...new Set(allPoints.map(pt => pt.year))].filter(Boolean).sort();
+                const activeYears = new Set(allYears);
+                const filtersContainer = document.getElementById('year-filters');
+
+                function renderFilterButtons() {
+                    filtersContainer.innerHTML = '';
+                    allYears.forEach(year => {
+                        const btn = document.createElement('button');
+                        btn.className = 'year-filter-btn' + (activeYears.has(year) ? ' active' : '');
+                        btn.textContent = year;
+                        btn.addEventListener('click', () => {
+                            if (activeYears.has(year)) {
+                                activeYears.delete(year);
+                            } else {
+                                activeYears.add(year);
+                            }
+                            btn.classList.toggle('active');
+                            updateScatterAll();
+                        });
+                        filtersContainer.appendChild(btn);
+                    });
+                }
+
+                function buildDatasets(points) {
+                    const byModel = {};
+                    points.forEach(pt => {
+                        const m = pt.model || 'Okänd';
+                        if (!byModel[m]) byModel[m] = [];
+                        byModel[m].push(pt);
+                    });
+                    return Object.keys(byModel).sort().map(model => {
+                        const color = modelColors[model] || defaultColor;
+                        return {
+                            label: model,
+                            data: byModel[model],
+                            backgroundColor: color + '99',
+                            borderColor: color,
+                            pointRadius: 6,
+                            pointHoverRadius: 9,
+                            pointHoverBackgroundColor: '#fff',
+                        };
+                    });
+                }
+
+                const ctxAll = document.getElementById('chart-scatter-all').getContext('2d');
+                const scatterAllChart = new Chart(ctxAll, {
+                    type: 'scatter',
+                    data: { datasets: buildDatasets(allPoints) },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: (e, elements, chart) => {
+                            if (elements.length > 0) {
+                                const el = elements[0];
+                                const pt = chart.data.datasets[el.datasetIndex].data[el.index];
+                                if (pt.url) window.open(pt.url, '_blank');
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                titleColor: '#f8fafc',
+                                padding: 15,
+                                callbacks: {
+                                    label: function (ctx) {
+                                        const pt = ctx.raw;
+                                        const price = new Intl.NumberFormat('sv-SE').format(pt.y);
+                                        const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
+                                        return [
+                                            `${pt.model} – ${pt.year} ${pt.version}`,
+                                            `Pris: ${price} kr`,
+                                            `Miltal: ${mil} mil`,
+                                            `Klicka för att öppna annonsen!`
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Miltal (mil)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+
+                function updateScatterAll() {
+                    const filtered = allPoints.filter(pt => activeYears.has(pt.year));
+                    scatterAllChart.data.datasets = buildDatasets(filtered);
+                    scatterAllChart.update();
+                }
+
+                renderFilterButtons();
+            }
+
+            // 3. Render Model Specific Charts
+            const modelsContainer = document.getElementById('models-container');
+
+            for (const modelName of Object.keys(analyticsData.averages)) {
+
+                const avgData = analyticsData.averages[modelName];
+                const scatterData = analyticsData.scatter[modelName] || [];
+
+                // Create Section Title
+                const sectionHeader = document.createElement('h2');
+                sectionHeader.className = 'section-title';
+                sectionHeader.textContent = modelName;
+                modelsContainer.appendChild(sectionHeader);
+
+                // Create row layout for side-by-side charts
+                const row = document.createElement('div');
+                row.className = 'charts-row';
+
+                // --- Average Chart Card ---
+                const avgCard = document.createElement('div');
+                avgCard.className = 'chart-card';
+                avgCard.innerHTML = `
+                    <h3 class="chart-title">Pris- och miltrender</h3>
+                    <p class="chart-subtitle">Aggregerat per årsmodell. Staplar = Pris, Linje = Miltal.</p>
+                    <div class="chart-container">
+                        <canvas id="avg-chart-${modelName.replace(/\s+/g, '-')}"></canvas>
+                    </div>
+                `;
+
+                // --- Scatter Chart Card ---
+                const scatterCard = document.createElement('div');
+                scatterCard.className = 'chart-card';
+                scatterCard.innerHTML = `
+                    <h3 class="chart-title">Fynd-radar (Pris vs Miltal)</h3>
+                    <p class="chart-subtitle">Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
+                    <div class="chart-container scatter-chart">
+                        <canvas id="scatter-chart-${modelName.replace(/\s+/g, '-')}"></canvas>
+                    </div>
+                `;
+
+                row.appendChild(avgCard);
+                row.appendChild(scatterCard);
+                modelsContainer.appendChild(row);
+
+                // Initialize Average Combo Chart
+                const ctxAvg = document.getElementById(`avg-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
+                new Chart(ctxAvg, {
+                    type: 'bar',
+                    data: {
+                        labels: avgData.years,
+                        datasets: [
+                            {
+                                label: 'Snittpris (kr)',
+                                data: avgData.prices,
+                                type: 'bar',
+                                backgroundColor: 'rgba(56, 189, 248, 0.5)',
+                                borderColor: '#38bdf8',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                order: 2,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Snittmiltal (mil)',
+                                data: avgData.mileages,
+                                type: 'line',
+                                borderColor: '#818cf8',
+                                backgroundColor: '#818cf8',
+                                borderWidth: 3,
+                                pointBackgroundColor: '#0f172a',
+                                pointBorderColor: '#818cf8',
+                                pointBorderWidth: 2,
+                                tension: 0.3,
+                                order: 1,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (context) {
+                                        let v = new Intl.NumberFormat('sv-SE').format(context.parsed.y);
+                                        let label = `${context.dataset.label}: ${v}`;
+                                        if (context.datasetIndex === 0) {
+                                            label += ` (Count: ${avgData.counts[context.dataIndex]})`;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { position: 'left', title: { display: true, text: 'Pris (kr)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y1: { position: 'right', title: { display: true, text: 'Miltal (mil)' }, grid: { drawOnChartArea: false } }
+                        }
+                    }
+                });
+
+                // Initialize Scatter Chart
+                const colors = ['#38bdf8', '#818cf8', '#f472b6', '#34d399', '#fbbf24', '#a78bfa'];
+                // Group scatter data by Year to give them different colors/labels
+                const datasetsByYear = {};
+                scatterData.forEach(pt => {
+                    const y = pt.year || 'Unknown';
+                    if (!datasetsByYear[y]) datasetsByYear[y] = [];
+                    datasetsByYear[y].push(pt);
+                });
+
+                const scatterDatasets = Object.keys(datasetsByYear).sort().map((year, idx) => {
+                    return {
+                        label: year,
+                        data: datasetsByYear[year],
+                        backgroundColor: colors[idx % colors.length] + '99', // adding transparency
+                        borderColor: colors[idx % colors.length],
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                        pointHoverBackgroundColor: '#fff',
+                    }
+                });
+
+                const ctxScatter = document.getElementById(`scatter-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
+                new Chart(ctxScatter, {
+                    type: 'scatter',
+                    data: { datasets: scatterDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: (e, elements, chart) => {
+                            if (elements.length > 0) {
+                                const el = elements[0];
+                                const pt = chart.data.datasets[el.datasetIndex].data[el.index];
+                                if (pt.url) window.open(pt.url, '_blank');
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                titleColor: '#f8fafc',
+                                padding: 15,
+                                callbacks: {
+                                    label: function (ctx) {
+                                        const pt = ctx.raw;
+                                        const price = new Intl.NumberFormat('sv-SE').format(pt.y);
+                                        const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
+                                        return [
+                                            `${pt.year} ${pt.version}`,
+                                            `Pris: ${price} kr`,
+                                            `Miltal: ${mil} mil`,
+                                            `Klicka för att öppna annonsen!`
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Miltal (mil)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesla Tracker</title>
+    <!-- Modern font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: rgba(24, 24, 27, 0.8);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --accent: #e82127;
+            --accent-overlay: rgba(232, 33, 39, 0.15);
+            --secondary-accent: #c0c0c0;
+            --tertiary-accent: #e82127;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            font-size: 2.5rem;
+            color: var(--text-primary);
+        }
+
+        h1 span {
+            color: var(--accent);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1600px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin: 10px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border-color: rgba(232, 33, 39, 0.3);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+            color: var(--text-primary);
+        }
+
+        .chart-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 20px 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Scatter plot pointer on canvas */
+        .chart-container.scatter-chart canvas {
+            cursor: pointer;
+        }
+
+        .year-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .year-filter-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .year-filter-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .year-filter-btn.active {
+            background: var(--accent-overlay);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+            width: 100%;
+        }
+
+        @media (max-width: 1000px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>T<span>E</span>SLA TRACK<span>E</span>R</h1>
+    <p class="subtitle">Hitta bästa bilen för pengarna</p>
+
+    <div class="dashboard-container" id="dashboard">
+        {% if analytics_data %}
+
+        <!-- Aggregerad fynd-radar -->
+        <div class="chart-card">
+            <h2 class="chart-title">Fynd-radar – Alla modeller</h2>
+            <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
+            <div class="year-filters" id="year-filters"></div>
+            <div class="chart-container scatter-chart">
+                <canvas id="chart-scatter-all"></canvas>
+            </div>
+        </div>
+
+        <!-- Multi-model injection point -->
+        <div id="models-container"></div>
+
+        <!-- Marknadstrender -->
+        <h2 class="section-title">Marknadstrender</h2>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Prisutveckling över tid</h2>
+                <p class="chart-subtitle">Snitt- och medianpris per modell. Baseras på dagliga snapshots.</p>
+                <div class="chart-container">
+                    <canvas id="chart-price-trends"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title">Tid på marknaden</h2>
+                <p class="chart-subtitle">Genomsnittligt antal dagar innan en bil säljs/tas bort, per modell.</p>
+                <div class="chart-container">
+                    <canvas id="chart-market-stats"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Trends -->
+        <div class="chart-card" style="margin-top: 20px;">
+            <h2 class="chart-title">Nya annonser per dag</h2>
+            <p class="chart-subtitle">Antal nyligen listade Teslor per datum</p>
+            <div class="chart-container">
+                <canvas id="chart-daily-additions"></canvas>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="empty-state">Ingen data hittades. Kör scrapern först!</div>
+        {% endif %}
+    </div>
+
+    <!-- Inject data securely to JS -->
+    <script id="chart-data" type="application/json">
+        {{ analytics_data | tojson | safe }}
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const rawData = document.getElementById('chart-data').textContent;
+            if (!rawData || rawData.trim() === "{}") return;
+
+            const analyticsData = JSON.parse(rawData);
+
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            // Find the "golden car": most underpriced relative to market.
+            // Fits price ~ year + mileage via linear regression, then picks
+            // the car with the largest negative residual (actual - expected).
+            function findGoldenCar(points) {
+                if (!points || points.length < 3) return null;
+                const valid = points.filter(p => p.year && p.x != null && p.y != null);
+                if (valid.length < 3) return null;
+
+                const n = valid.length;
+                // Variables: x1 = year, x2 = mileage, y = price
+                let sx1 = 0, sx2 = 0, sy = 0;
+                let sx1x1 = 0, sx2x2 = 0, sx1x2 = 0;
+                let sx1y = 0, sx2y = 0;
+
+                valid.forEach(p => {
+                    const x1 = p.year, x2 = p.x, y = p.y;
+                    sx1 += x1; sx2 += x2; sy += y;
+                    sx1x1 += x1 * x1; sx2x2 += x2 * x2; sx1x2 += x1 * x2;
+                    sx1y += x1 * y; sx2y += x2 * y;
+                });
+
+                // Solve normal equations for y = a*x1 + b*x2 + c
+                // Using Cramer's rule on the 3x3 system
+                const A = [
+                    [sx1x1, sx1x2, sx1],
+                    [sx1x2, sx2x2, sx2],
+                    [sx1,   sx2,   n  ]
+                ];
+                const B = [sx1y, sx2y, sy];
+
+                function det3(m) {
+                    return m[0][0] * (m[1][1]*m[2][2] - m[1][2]*m[2][1])
+                         - m[0][1] * (m[1][0]*m[2][2] - m[1][2]*m[2][0])
+                         + m[0][2] * (m[1][0]*m[2][1] - m[1][1]*m[2][0]);
+                }
+
+                const D = det3(A);
+                if (Math.abs(D) < 1e-10) return null;
+
+                const Da = det3([
+                    [B[0], A[0][1], A[0][2]],
+                    [B[1], A[1][1], A[1][2]],
+                    [B[2], A[2][1], A[2][2]]
+                ]);
+                const Db = det3([
+                    [A[0][0], B[0], A[0][2]],
+                    [A[1][0], B[1], A[1][2]],
+                    [A[2][0], B[2], A[2][2]]
+                ]);
+                const Dc = det3([
+                    [A[0][0], A[0][1], B[0]],
+                    [A[1][0], A[1][1], B[1]],
+                    [A[2][0], A[2][1], B[2]]
+                ]);
+
+                const a = Da / D; // year coefficient
+                const b = Db / D; // mileage coefficient
+                const c = Dc / D; // intercept
+
+                // Find car with largest negative residual (most underpriced)
+                let best = null;
+                let bestResidual = Infinity;
+                valid.forEach(pt => {
+                    const expected = a * pt.year + b * pt.x + c;
+                    const residual = pt.y - expected;
+                    if (residual < bestResidual) {
+                        bestResidual = residual;
+                        best = pt;
+                    }
+                });
+                return best;
+            }
+
+            function goldenDataset(point) {
+                if (!point) return null;
+                return {
+                    label: 'Gyllene bilen',
+                    data: [point],
+                    backgroundColor: '#ffd700',
+                    borderColor: '#ffd700',
+                    borderWidth: 3,
+                    pointRadius: 12,
+                    pointHoverRadius: 15,
+                    pointStyle: 'star',
+                    pointHoverBackgroundColor: '#ffd700',
+                    order: 0,
+                };
+            }
+
+            // 1. Render Daily Additions
+            if (analyticsData.daily_additions && analyticsData.daily_additions.dates.length > 0) {
+                const ctxDaily = document.getElementById('chart-daily-additions').getContext('2d');
+                new Chart(ctxDaily, {
+                    type: 'bar',
+                    data: {
+                        labels: analyticsData.daily_additions.dates,
+                        datasets: [{
+                            label: 'Nya bilar tillagda',
+                            data: analyticsData.daily_additions.counts,
+                            backgroundColor: 'rgba(244, 114, 182, 0.7)',
+                            borderColor: '#f472b6',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. Price trends over time
+            const trendColors = {
+                'Tesla Model 3': '#38bdf8',
+                'Tesla Model Y': '#f472b6',
+                'Tesla Model S': '#34d399',
+                'Tesla Model X': '#fbbf24',
+            };
+            if (analyticsData.price_trends && Object.keys(analyticsData.price_trends).length > 0) {
+                const trendDatasets = [];
+                for (const [model, data] of Object.entries(analyticsData.price_trends)) {
+                    const color = trendColors[model] || '#a78bfa';
+                    trendDatasets.push({
+                        label: `${model} (snitt)`,
+                        data: data.avg,
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 3,
+                    });
+                    trendDatasets.push({
+                        label: `${model} (median)`,
+                        data: data.median,
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.3,
+                        pointRadius: 3,
+                    });
+                }
+                // Use dates from the first model
+                const firstModel = Object.values(analyticsData.price_trends)[0];
+                const ctxTrend = document.getElementById('chart-price-trends').getContext('2d');
+                new Chart(ctxTrend, {
+                    type: 'line',
+                    data: { labels: firstModel.dates, datasets: trendDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return `${ctx.dataset.label}: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 3. Market stats – time on market
+            if (analyticsData.market_stats && Object.keys(analyticsData.market_stats).length > 0) {
+                const models = Object.keys(analyticsData.market_stats).sort();
+                const days = models.map(m => analyticsData.market_stats[m].avg_days_on_market || 0);
+                const soldCounts = models.map(m => analyticsData.market_stats[m].sold_count || 0);
+                const barColors = models.map(m => trendColors[m] || '#a78bfa');
+
+                const ctxMarket = document.getElementById('chart-market-stats').getContext('2d');
+                new Chart(ctxMarket, {
+                    type: 'bar',
+                    data: {
+                        labels: models,
+                        datasets: [{
+                            label: 'Snittdagar på marknaden',
+                            data: days,
+                            backgroundColor: barColors.map(c => c + '99'),
+                            borderColor: barColors,
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    afterLabel: function (ctx) {
+                                        return `Antal sålda/borttagna: ${soldCounts[ctx.dataIndex]}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Dagar' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 5. Render Aggregated Scatter (all models) with year filters
+            if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
+                const modelColors = {
+                    'Tesla Model 3': '#38bdf8',
+                    'Tesla Model Y': '#f472b6',
+                    'Tesla Model S': '#34d399',
+                    'Tesla Model X': '#fbbf24',
+                };
+                const defaultColor = '#a78bfa';
+                const allPoints = analyticsData.scatter_all;
+
+                // Collect unique years and build filter buttons
+                const allYears = [...new Set(allPoints.map(pt => pt.year))].filter(Boolean).sort();
+                const activeYears = new Set(allYears);
+                const filtersContainer = document.getElementById('year-filters');
+
+                function renderFilterButtons() {
+                    filtersContainer.innerHTML = '';
+                    allYears.forEach(year => {
+                        const btn = document.createElement('button');
+                        btn.className = 'year-filter-btn' + (activeYears.has(year) ? ' active' : '');
+                        btn.textContent = year;
+                        btn.addEventListener('click', () => {
+                            if (activeYears.has(year)) {
+                                activeYears.delete(year);
+                            } else {
+                                activeYears.add(year);
+                            }
+                            btn.classList.toggle('active');
+                            updateScatterAll();
+                        });
+                        filtersContainer.appendChild(btn);
+                    });
+                }
+
+                function buildDatasets(points) {
+                    const byModel = {};
+                    points.forEach(pt => {
+                        const m = pt.model || 'Okänd';
+                        if (!byModel[m]) byModel[m] = [];
+                        byModel[m].push(pt);
+                    });
+                    const datasets = Object.keys(byModel).sort().map(model => {
+                        const color = modelColors[model] || defaultColor;
+                        return {
+                            label: model,
+                            data: byModel[model],
+                            backgroundColor: color + '99',
+                            borderColor: color,
+                            pointRadius: 6,
+                            pointHoverRadius: 9,
+                            pointHoverBackgroundColor: '#fff',
+                        };
+                    });
+                    const golden = goldenDataset(findGoldenCar(points));
+                    if (golden) datasets.push(golden);
+                    return datasets;
+                }
+
+                const ctxAll = document.getElementById('chart-scatter-all').getContext('2d');
+                const scatterAllChart = new Chart(ctxAll, {
+                    type: 'scatter',
+                    data: { datasets: buildDatasets(allPoints) },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: (e, elements, chart) => {
+                            if (elements.length > 0) {
+                                const el = elements[0];
+                                const pt = chart.data.datasets[el.datasetIndex].data[el.index];
+                                if (pt.url) window.open(pt.url, '_blank');
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                titleColor: '#f8fafc',
+                                padding: 15,
+                                callbacks: {
+                                    title: function (items) {
+                                        if (items.length && items[0].dataset.label === 'Gyllene bilen') return 'Gyllene bilen';
+                                        return '';
+                                    },
+                                    label: function (ctx) {
+                                        const pt = ctx.raw;
+                                        const price = new Intl.NumberFormat('sv-SE').format(pt.y);
+                                        const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
+                                        const lines = [
+                                            `${pt.model} – ${pt.year} ${pt.version}`,
+                                            `Pris: ${price} kr`,
+                                            `Miltal: ${mil} mil`,
+                                        ];
+                                        if (pt.kr_mil) lines.push(`Kr/mil: ${new Intl.NumberFormat('sv-SE').format(pt.kr_mil)}`);
+                                        lines.push(`Klicka för att öppna annonsen!`);
+                                        return lines;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Miltal (mil)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+
+                function updateScatterAll() {
+                    const filtered = allPoints.filter(pt => activeYears.has(pt.year));
+                    scatterAllChart.data.datasets = buildDatasets(filtered);
+                    scatterAllChart.update();
+                }
+
+                renderFilterButtons();
+            }
+
+            // 6. Render Model Specific Charts
+            const modelsContainer = document.getElementById('models-container');
+
+            for (const modelName of Object.keys(analyticsData.averages)) {
+
+                const avgData = analyticsData.averages[modelName];
+                const scatterData = analyticsData.scatter[modelName] || [];
+
+                // Create Section Title
+                const sectionHeader = document.createElement('h2');
+                sectionHeader.className = 'section-title';
+                sectionHeader.textContent = modelName;
+                modelsContainer.appendChild(sectionHeader);
+
+                // Create row layout for side-by-side charts
+                const row = document.createElement('div');
+                row.className = 'charts-row';
+
+                // --- Average Chart Card ---
+                const avgCard = document.createElement('div');
+                avgCard.className = 'chart-card';
+                avgCard.innerHTML = `
+                    <h3 class="chart-title">Pris- och miltrender</h3>
+                    <p class="chart-subtitle">Aggregerat per årsmodell. Staplar = Pris, Linje = Miltal.</p>
+                    <div class="chart-container">
+                        <canvas id="avg-chart-${modelName.replace(/\s+/g, '-')}"></canvas>
+                    </div>
+                `;
+
+                // --- Scatter Chart Card ---
+                const scatterCard = document.createElement('div');
+                scatterCard.className = 'chart-card';
+                scatterCard.innerHTML = `
+                    <h3 class="chart-title">Fynd-radar (Pris vs Miltal)</h3>
+                    <p class="chart-subtitle">Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
+                    <div class="chart-container scatter-chart">
+                        <canvas id="scatter-chart-${modelName.replace(/\s+/g, '-')}"></canvas>
+                    </div>
+                `;
+
+                row.appendChild(avgCard);
+                row.appendChild(scatterCard);
+                modelsContainer.appendChild(row);
+
+                // Initialize Average Combo Chart
+                const ctxAvg = document.getElementById(`avg-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
+                new Chart(ctxAvg, {
+                    type: 'bar',
+                    data: {
+                        labels: avgData.years,
+                        datasets: [
+                            {
+                                label: 'Snittpris (kr)',
+                                data: avgData.prices,
+                                type: 'bar',
+                                backgroundColor: 'rgba(56, 189, 248, 0.5)',
+                                borderColor: '#38bdf8',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                order: 2,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Snittmiltal (mil)',
+                                data: avgData.mileages,
+                                type: 'line',
+                                borderColor: '#818cf8',
+                                backgroundColor: '#818cf8',
+                                borderWidth: 3,
+                                pointBackgroundColor: '#0f172a',
+                                pointBorderColor: '#818cf8',
+                                pointBorderWidth: 2,
+                                tension: 0.3,
+                                order: 1,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (context) {
+                                        let v = new Intl.NumberFormat('sv-SE').format(context.parsed.y);
+                                        let label = `${context.dataset.label}: ${v}`;
+                                        if (context.datasetIndex === 0) {
+                                            label += ` (Count: ${avgData.counts[context.dataIndex]})`;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { position: 'left', title: { display: true, text: 'Pris (kr)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            y1: { position: 'right', title: { display: true, text: 'Miltal (mil)' }, grid: { drawOnChartArea: false } }
+                        }
+                    }
+                });
+
+                // Initialize Scatter Chart
+                const colors = ['#38bdf8', '#818cf8', '#f472b6', '#34d399', '#fbbf24', '#a78bfa'];
+                // Group scatter data by Year to give them different colors/labels
+                const datasetsByYear = {};
+                scatterData.forEach(pt => {
+                    const y = pt.year || 'Unknown';
+                    if (!datasetsByYear[y]) datasetsByYear[y] = [];
+                    datasetsByYear[y].push(pt);
+                });
+
+                const scatterDatasets = Object.keys(datasetsByYear).sort().map((year, idx) => {
+                    return {
+                        label: year,
+                        data: datasetsByYear[year],
+                        backgroundColor: colors[idx % colors.length] + '99',
+                        borderColor: colors[idx % colors.length],
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                        pointHoverBackgroundColor: '#fff',
+                    }
+                });
+                const goldenModel = goldenDataset(findGoldenCar(scatterData));
+                if (goldenModel) scatterDatasets.push(goldenModel);
+
+                const ctxScatter = document.getElementById(`scatter-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
+                new Chart(ctxScatter, {
+                    type: 'scatter',
+                    data: { datasets: scatterDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: (e, elements, chart) => {
+                            if (elements.length > 0) {
+                                const el = elements[0];
+                                const pt = chart.data.datasets[el.datasetIndex].data[el.index];
+                                if (pt.url) window.open(pt.url, '_blank');
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                titleColor: '#f8fafc',
+                                padding: 15,
+                                callbacks: {
+                                    title: function (items) {
+                                        if (items.length && items[0].dataset.label === 'Gyllene bilen') return 'Gyllene bilen';
+                                        return '';
+                                    },
+                                    label: function (ctx) {
+                                        const pt = ctx.raw;
+                                        const price = new Intl.NumberFormat('sv-SE').format(pt.y);
+                                        const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
+                                        const lines = [
+                                            `${pt.year} ${pt.version}`,
+                                            `Pris: ${price} kr`,
+                                            `Miltal: ${mil} mil`,
+                                        ];
+                                        if (pt.kr_mil) lines.push(`Kr/mil: ${new Intl.NumberFormat('sv-SE').format(pt.kr_mil)}`);
+                                        lines.push(`Klicka för att öppna annonsen!`);
+                                        return lines;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Miltal (mil)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            y: {
+                                title: { display: true, text: 'Pris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

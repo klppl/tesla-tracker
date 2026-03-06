@@ -1,0 +1,40 @@
+name: Scrape & Build
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # Varje dag kl 06:00 UTC
+  workflow_dispatch: # Manuell körning
+
+permissions:
+  contents: write
+
+jobs:
+  scrape-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv pip install flask requests --system
+
+      - name: Run scraper
+        run: python scraper.py
+
+      - name: Generate static site
+        run: python app.py --static
+
+      - name: Commit updated data and static site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tesla_cars.db public/
+          git diff --staged --quiet || git commit -m "Daglig uppdatering: scrape + static build"
+          git push
