@@ -931,7 +931,7 @@
         <!-- Aggregerad fynd-radar -->
         <div id="section-scatter" class="chart-card">
             <h2 class="chart-title">Fynd-radar – Alla modeller</h2>
-            <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen. Scrolla för att zooma, dra för att panorera.</p>
+            <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen. Scrolla för att zooma, dra för att panorera. Dubbelklicka för att återställa.</p>
             <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
             <div class="year-filters" id="model-filters"></div>
             <div class="year-filters" id="source-filters"></div>
@@ -1062,17 +1062,44 @@
             const analyticsData = JSON.parse(rawData);
 
             // Zoom/pan config for scatter charts
+            function isScaleValid(scale) {
+                return isFinite(scale.min) && isFinite(scale.max) && !isNaN(scale.min) && !isNaN(scale.max);
+            }
             const zoomPlugin = {
                 zoom: {
-                    wheel: { enabled: true },
+                    wheel: { enabled: true, speed: 0.05 },
                     pinch: { enabled: true },
                     mode: 'xy',
+                    onZoomComplete: function({chart}) {
+                        if (!isScaleValid(chart.scales.x) || !isScaleValid(chart.scales.y)) {
+                            chart.resetZoom();
+                        }
+                    },
                 },
                 pan: {
                     enabled: true,
                     mode: 'xy',
+                    onPanComplete: function({chart}) {
+                        if (!isScaleValid(chart.scales.x) || !isScaleValid(chart.scales.y)) {
+                            chart.resetZoom();
+                        }
+                    },
+                },
+                limits: {
+                    x: { min: -50000, max: 250000, minRange: 5 },
+                    y: { min: -500000, max: 5000000, minRange: 5000 },
                 },
             };
+
+            // Dubbelklick för att återställa zoom på scatter-charts
+            function addDoubleClickReset(canvasId, chart) {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return;
+                canvas.addEventListener('dblclick', function(e) {
+                    e.preventDefault();
+                    chart.resetZoom();
+                });
+            }
 
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
@@ -1860,6 +1887,7 @@
                         }
                     }
                 });
+                addDoubleClickReset('chart-scatter-all', scatterAllChart);
 
                 function updateScatterAll() {
                     const minMil = parseFloat(mileageMinInput.value) || 0;
@@ -2161,6 +2189,7 @@
                         }
                     }
                 });
+                addDoubleClickReset(`scatter-chart-${scatterId}`, modelScatterChart);
 
                 }); // end lazyChart
                 })(modelName, avgData, scatterData, scatterId); // end IIFE
