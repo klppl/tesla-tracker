@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python:*)",
       "Bash(sqlite3:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(uv:*)"
     ]
   }
 }
