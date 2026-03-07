@@ -243,48 +243,84 @@
             color: #fff;
         }
 
-        .range-filter {
-            display: inline-flex;
+        .mileage-filter {
+            display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 16px;
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            flex-wrap: wrap;
         }
 
-        .range-filter label {
-            color: var(--text-primary);
-            font-size: 0.9rem;
+        .mileage-filter-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
             font-weight: 500;
-            white-space: nowrap;
+            margin-right: 2px;
         }
 
-        .range-filter input[type="number"] {
+        .mileage-presets {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .mileage-preset-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            transition: all 0.15s ease;
+        }
+
+        .mileage-preset-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .mileage-preset-btn.active {
+            background: var(--accent-overlay);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .mileage-custom {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 4px;
+        }
+
+        .mileage-custom input[type="number"] {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: var(--text-primary);
-            padding: 8px 12px;
-            border-radius: 8px;
+            padding: 5px 10px;
+            border-radius: 6px;
             font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: 500;
-            width: 100px;
-            transition: all 0.2s ease;
+            width: 80px;
+            transition: all 0.15s ease;
         }
 
-        .range-filter input[type="number"]:focus {
+        .mileage-custom input[type="number"]:focus {
             outline: none;
             border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.14);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            box-shadow: 0 0 0 2px rgba(232, 33, 39, 0.15);
         }
 
-        .range-filter span {
+        .mileage-custom span {
             color: var(--text-secondary);
-            font-size: 1rem;
-            font-weight: 500;
+            font-size: 0.8rem;
+        }
+
+        .mileage-unit {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
         }
 
         .hero-section {
@@ -608,12 +644,15 @@
             <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
             <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
             <div class="year-filters" id="year-filters"></div>
-            <div class="range-filter">
-                <label>Miltal:</label>
-                <input type="number" id="mileage-min" placeholder="0" min="0" step="100">
-                <span>–</span>
-                <input type="number" id="mileage-max" placeholder="Max" min="0" step="100">
-                <label>mil</label>
+            <div class="mileage-filter" id="mileage-filter">
+                <label class="mileage-filter-label">Miltal:</label>
+                <div class="mileage-presets" id="mileage-presets"></div>
+                <div class="mileage-custom" id="mileage-custom" style="display: none;">
+                    <input type="number" id="mileage-min" placeholder="0" min="0" step="100">
+                    <span>–</span>
+                    <input type="number" id="mileage-max" placeholder="Max" min="0" step="100">
+                    <span class="mileage-unit">mil</span>
+                </div>
             </div>
             <div class="chart-container scatter-chart">
                 <canvas id="chart-scatter-all"></canvas>
@@ -1256,14 +1295,60 @@
                 const defaultColor = '#a78bfa';
                 const allPoints = analyticsData.scatter_all;
 
-                // Set up mileage range filter defaults
+                // Set up mileage preset filter
                 const mileageMinInput = document.getElementById('mileage-min');
                 const mileageMaxInput = document.getElementById('mileage-max');
+                const mileageCustom = document.getElementById('mileage-custom');
+                const presetsContainer = document.getElementById('mileage-presets');
                 const maxMileage = Math.ceil(Math.max(...allPoints.map(pt => pt.x)));
+
+                const presets = [
+                    { label: 'Alla', min: 0, max: Infinity },
+                    { label: '< 2 500', min: 0, max: 2500 },
+                    { label: '< 5 000', min: 0, max: 5000 },
+                    { label: '< 7 500', min: 0, max: 7500 },
+                    { label: '< 10 000', min: 0, max: 10000 },
+                    { label: '< 12 500', min: 0, max: 12500 },
+                    { label: '< 15 000', min: 0, max: 15000 },
+                    { label: '< 20 000', min: 0, max: 20000 },
+                    { label: '< 25 000', min: 0, max: 25000 },
+                    { label: '< 30 000', min: 0, max: 30000 },
+                    { label: '< 40 000', min: 0, max: 40000 },
+                    { label: '< 50 000', min: 0, max: 50000 },
+                    { label: 'Anpassad', min: null, max: null },
+                ];
+
+                let activePreset = 'Alla';
+
+                function renderMileagePresets() {
+                    presetsContainer.innerHTML = '';
+                    presets.forEach(p => {
+                        const btn = document.createElement('button');
+                        btn.className = 'mileage-preset-btn' + (activePreset === p.label ? ' active' : '');
+                        btn.textContent = p.label;
+                        btn.addEventListener('click', () => {
+                            activePreset = p.label;
+                            if (p.label === 'Anpassad') {
+                                mileageCustom.style.display = 'flex';
+                                mileageMinInput.value = 0;
+                                mileageMaxInput.value = maxMileage;
+                            } else {
+                                mileageCustom.style.display = 'none';
+                                mileageMinInput.value = p.min;
+                                mileageMaxInput.value = p.max === Infinity ? '' : p.max;
+                            }
+                            renderMileagePresets();
+                            updateScatterAll();
+                        });
+                        presetsContainer.appendChild(btn);
+                    });
+                }
+
                 mileageMinInput.value = 0;
-                mileageMaxInput.value = maxMileage;
+                mileageMaxInput.value = '';
                 mileageMinInput.addEventListener('input', updateScatterAll);
                 mileageMaxInput.addEventListener('input', updateScatterAll);
+                renderMileagePresets();
 
                 // Collect unique years and build filter buttons
                 const allYears = [...new Set(allPoints.map(pt => pt.year))].filter(Boolean).sort();
