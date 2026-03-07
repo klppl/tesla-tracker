@@ -43,6 +43,12 @@ def get_analytics_data():
     for row in cursor.fetchall():
         analytics["summary"]["by_source"][row["source"]] = row["cnt"]
 
+    # Last updated timestamp
+    cursor.execute("SELECT MAX(created_at) FROM cars")
+    last_row = cursor.fetchone()
+    if last_row and last_row[0]:
+        analytics["summary"]["last_updated"] = last_row[0]
+
     # Quick stats for hero section
     cursor.execute('''
         SELECT
@@ -164,26 +170,56 @@ def get_analytics_data():
     except Exception:
         pass
 
-    # 6. Equipment value – price impact of towbar, winter wheels, battery range
+    # 6. Equipment value – separate towbar and winter wheel price impact
     try:
+        # Towbar impact
         cursor.execute('''
             SELECT
-                towbar,
-                winter_wheels,
+                CASE
+                    WHEN towbar IN ('INCLUDED', 'ADDON', 'AVAILABLE') THEN 'Med dragkrok'
+                    ELSE 'Utan dragkrok'
+                END as towbar_label,
                 ROUND(AVG(price)) as avg_price,
                 COUNT(*) as cnt
             FROM cars
-            WHERE price IS NOT NULL AND year IS NOT NULL AND mileage IS NOT NULL
-            GROUP BY towbar, winter_wheels
+            WHERE price IS NOT NULL AND status = 'active'
+            GROUP BY towbar_label
             HAVING cnt >= 2
         ''')
+        towbar_stats = []
         for row in cursor.fetchall():
-            analytics["equipment_value"].append({
-                "towbar": row["towbar"],
-                "winter_wheels": row["winter_wheels"],
+            towbar_stats.append({
+                "label": row["towbar_label"],
                 "avg_price": row["avg_price"],
                 "count": row["cnt"],
             })
+
+        # Winter wheels impact
+        cursor.execute('''
+            SELECT
+                CASE
+                    WHEN winter_wheels IN ('FRICTION', 'STUDDED') THEN 'Med vinterhjul'
+                    ELSE 'Utan vinterhjul'
+                END as wheels_label,
+                ROUND(AVG(price)) as avg_price,
+                COUNT(*) as cnt
+            FROM cars
+            WHERE price IS NOT NULL AND status = 'active'
+            GROUP BY wheels_label
+            HAVING cnt >= 2
+        ''')
+        winter_stats = []
+        for row in cursor.fetchall():
+            winter_stats.append({
+                "label": row["wheels_label"],
+                "avg_price": row["avg_price"],
+                "count": row["cnt"],
+            })
+
+        analytics["equipment_value"] = {
+            "towbar": towbar_stats,
+            "winter_wheels": winter_stats,
+        }
     except Exception:
         pass
 

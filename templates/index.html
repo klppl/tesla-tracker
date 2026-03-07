@@ -96,6 +96,27 @@
             flex-shrink: 0;
         }
 
+        .sidebar-nav .nav-sub {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar-nav .nav-sub a {
+            padding-left: 32px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        .sidebar-nav .nav-sub a:hover {
+            opacity: 1;
+        }
+
+        .sidebar-nav .nav-sub a.active {
+            opacity: 1;
+        }
+
         @media (max-width: 1100px) {
             .sidebar {
                 display: none;
@@ -272,6 +293,8 @@
             border-radius: 16px;
             padding: 32px;
             width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .hero-grid {
@@ -476,14 +499,19 @@
 <body>
 
     <h1>T<span>E</span>SLA TRACK<span>E</span>R</h1>
-    <p class="subtitle">Hitta bästa bilen för pengarna</p>
+    <p class="subtitle">Begagnatmarknaden för Tesla i Sverige</p>
+    {% if analytics_data and analytics_data.summary and analytics_data.summary.last_updated %}
+    <p class="subtitle" style="margin-top: -1.5rem; font-size: 0.75rem; opacity: 0.5;">Senast uppdaterad: {{ analytics_data.summary.last_updated[:16].replace('T', ' ') }}</p>
+    {% endif %}
 
     <div class="page-layout">
     <nav class="sidebar">
         <ul class="sidebar-nav">
             <li><a href="#section-start"><span class="nav-icon">&#9889;</span> Start</a></li>
             <li><a href="#section-scatter"><span class="nav-icon">&#9733;</span> Fynd-radar</a></li>
-            <li><a href="#section-models"><span class="nav-icon">&#9881;</span> Per modell</a></li>
+            <li><a href="#section-models"><span class="nav-icon">&#9881;</span> Per modell</a>
+                <ul class="nav-sub" id="sidebar-models"></ul>
+            </li>
             <li><a href="#section-trends"><span class="nav-icon">&#8593;</span> Marknadstrender</a></li>
             <li><a href="#section-equipment"><span class="nav-icon">&#9670;</span> Utrustning & Färg</a></li>
             <li><a href="#section-deep"><span class="nav-icon">&#9679;</span> Djupanalys</a></li>
@@ -494,26 +522,75 @@
     <div class="dashboard-container" id="dashboard">
         {% if analytics_data %}
 
-        <!-- Sammanfattning -->
+        <!-- Start / Hero -->
         {% if analytics_data.summary and analytics_data.summary.total > 0 %}
-        <div id="section-summary" class="summary-bar">
-            <div class="summary-stat summary-total">
-                <span class="summary-value">{{ analytics_data.summary.total }}</span>
-                <span class="summary-label">Aktiva bilar</span>
+        <div id="section-start" class="hero-section">
+            <div class="hero-counts">
+                <span class="hero-count-chip total"><strong>{{ analytics_data.summary.total }}</strong> aktiva bilar</span>
+                {% for model, count in analytics_data.summary.by_model.items() %}
+                <span class="hero-count-chip"><strong>{{ count }}</strong> {{ model }}</span>
+                {% endfor %}
+                {% for source, count in analytics_data.summary.by_source.items() %}
+                <span class="hero-count-chip"><strong>{{ count }}</strong> {{ source }}</span>
+                {% endfor %}
             </div>
-            {% for model, count in analytics_data.summary.by_model.items() %}
-            <div class="summary-stat">
-                <span class="summary-value">{{ count }}</span>
-                <span class="summary-label">{{ model }}</span>
+
+            <div class="hero-grid">
+                <!-- Left: Quick stats -->
+                <div>
+                    {% if analytics_data.summary.quick_stats %}
+                    {% set qs = analytics_data.summary.quick_stats %}
+                    <div class="hero-stats-grid">
+                        <div class="hero-stat">
+                            <span class="hero-stat-value accent">{{ "{:,}".format(qs.avg_price).replace(",", " ") }} kr</span>
+                            <span class="hero-stat-label">Snittpris</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value">{{ "{:,}".format(qs.min_price).replace(",", " ") }} kr</span>
+                            <span class="hero-stat-label">Lägsta pris</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value">{{ "{:,}".format(qs.max_price).replace(",", " ") }} kr</span>
+                            <span class="hero-stat-label">Högsta pris</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value">{{ "{:,}".format(qs.avg_mileage).replace(",", " ") }} mil</span>
+                            <span class="hero-stat-label">Snittmiltal</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value">{{ qs.min_year }}–{{ qs.max_year }}</span>
+                            <span class="hero-stat-label">Årsmodeller</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value">{{ analytics_data.summary.by_source | length }}</span>
+                            <span class="hero-stat-label">Källor</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="summary-divider"></div>
+
+                <!-- Right: How it works -->
+                <div class="hero-explainer">
+                    <h3>Hur fungerar Tesla Tracker?</h3>
+                    <p>Sidan samlar automatiskt in Tesla-annonser från svenska bilsajter och analyserar marknaden dagligen.</p>
+                    <div class="hero-steps">
+                        <div class="hero-step">
+                            <span class="hero-step-num">1</span>
+                            <span>Data skrapas dagligen från {{ analytics_data.summary.by_source.keys() | list | join(', ') }}</span>
+                        </div>
+                        <div class="hero-step">
+                            <span class="hero-step-num">2</span>
+                            <span>Pris, miltal, årsmodell och utrustning jämförs med marknaden</span>
+                        </div>
+                        <div class="hero-step">
+                            <span class="hero-step-num">3</span>
+                            <span><strong>Bästa deal?</strong> hittas via linjär regression &ndash; bilen som avviker mest under förväntat marknadspris</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            {% endfor %}
-            <div class="summary-divider"></div>
-            {% for source, count in analytics_data.summary.by_source.items() %}
-            <div class="summary-stat">
-                <span class="summary-value">{{ count }}</span>
-                <span class="summary-label">{{ source }}</span>
-            </div>
-            {% endfor %}
         </div>
         {% endif %}
 
@@ -562,10 +639,13 @@
         <h2 id="section-equipment" class="section-title">Utrustning & Färg</h2>
         <div class="charts-row">
             <div class="chart-card">
-                <h2 class="chart-title">Utrustning vs Pris</h2>
-                <p class="chart-subtitle">Snittpris beroende på dragkrok och vinterhjul. Vad är utrustningen värd?</p>
-                <div class="chart-container">
-                    <canvas id="chart-equipment"></canvas>
+                <h2 class="chart-title">Vad kostar utrustningen?</h2>
+                <p class="chart-subtitle">Snittpris med vs utan dragkrok och vinterhjul. Hur mycket påverkar utrustningen priset?</p>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="chart-equipment-towbar"></canvas>
+                </div>
+                <div class="chart-container" style="height: 250px; margin-top: 16px;">
+                    <canvas id="chart-equipment-winter"></canvas>
                 </div>
             </div>
             <div class="chart-card">
@@ -872,60 +952,75 @@
                 });
             }
 
-            // 5. Equipment value chart
-            if (analyticsData.equipment_value && analyticsData.equipment_value.length > 0) {
-                const towbarMap = { 'INCLUDED': 'Inkluderad', 'AVAILABLE': 'Finns som tillval', 'NOT_AVAILABLE': 'Saknas', null: 'Okänt' };
-                const winterMap = { 'FRICTION': 'Friktionsdäck', 'STUDDED': 'Dubbdäck', null: 'Inga vinterhjul' };
+            // 5. Equipment value charts (towbar + winter wheels)
+            if (analyticsData.equipment_value && analyticsData.equipment_value.towbar) {
+                function renderEquipChart(canvasId, data, title) {
+                    const labels = data.map(e => `${e.label} (${e.count} st)`);
+                    const prices = data.map(e => e.avg_price);
+                    const counts = data.map(e => e.count);
+                    const colors = data.map(e =>
+                        e.label.startsWith('Med') ? 'rgba(52, 211, 153, 0.7)' : 'rgba(232, 33, 39, 0.5)'
+                    );
+                    const borderColors = data.map(e =>
+                        e.label.startsWith('Med') ? '#34d399' : '#e82127'
+                    );
 
-                const labels = analyticsData.equipment_value.map(e => {
-                    const t = towbarMap[e.towbar] || e.towbar || 'Okänt';
-                    const w = winterMap[e.winter_wheels] || e.winter_wheels || 'Inga';
-                    return `Krok: ${t} / ${w}`;
-                });
-                const prices = analyticsData.equipment_value.map(e => e.avg_price);
-                const counts = analyticsData.equipment_value.map(e => e.count);
-
-                const ctxEquip = document.getElementById('chart-equipment').getContext('2d');
-                new Chart(ctxEquip, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Snittpris (kr)',
-                            data: prices,
-                            backgroundColor: 'rgba(232, 33, 39, 0.6)',
-                            borderColor: '#e82127',
-                            borderWidth: 1,
-                            borderRadius: 4,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        plugins: {
-                            tooltip: {
-                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                                titleColor: '#f8fafc',
-                                callbacks: {
-                                    label: function (ctx) {
-                                        return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.x)} kr`;
-                                    },
-                                    afterLabel: function (ctx) {
-                                        return `Antal bilar: ${counts[ctx.dataIndex]}`;
+                    new Chart(document.getElementById(canvasId).getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: title,
+                                data: prices,
+                                backgroundColor: colors,
+                                borderColor: borderColors,
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                barThickness: 40,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                    titleColor: '#f8fafc',
+                                    callbacks: {
+                                        title: (items) => title,
+                                        label: function (ctx) {
+                                            return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.x)} kr`;
+                                        },
+                                        afterLabel: function (ctx) {
+                                            const diff = prices[0] - prices[1];
+                                            if (prices.length === 2 && ctx.dataIndex === 0) {
+                                                const sign = diff > 0 ? '+' : '';
+                                                return `Skillnad: ${sign}${new Intl.NumberFormat('sv-SE').format(diff)} kr`;
+                                            }
+                                            return '';
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                title: { display: true, text: 'Pris (kr)' },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
                             },
-                            y: { grid: { display: false } }
+                            scales: {
+                                x: {
+                                    title: { display: true, text: 'Snittpris (kr)' },
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { callback: v => new Intl.NumberFormat('sv-SE').format(v) }
+                                },
+                                y: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 13, weight: '500' } }
+                                }
+                            }
                         }
-                    }
-                });
+                    });
+                }
+
+                renderEquipChart('chart-equipment-towbar', analyticsData.equipment_value.towbar, 'Dragkrok');
+                renderEquipChart('chart-equipment-winter', analyticsData.equipment_value.winter_wheels, 'Vinterhjul');
             }
 
             // 6. Color stats chart
@@ -1286,11 +1381,28 @@
                 const avgData = analyticsData.averages[modelName];
                 const scatterData = analyticsData.scatter[modelName] || [];
 
-                // Create Section Title
+                // Create Section Title with anchor ID
+                const modelId = 'model-' + modelName.replace(/\s+/g, '-').toLowerCase();
                 const sectionHeader = document.createElement('h2');
                 sectionHeader.className = 'section-title';
+                sectionHeader.id = modelId;
                 sectionHeader.textContent = modelName;
                 modelsContainer.appendChild(sectionHeader);
+
+                // Add sidebar sub-link
+                const sidebarModels = document.getElementById('sidebar-models');
+                if (sidebarModels) {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = '#' + modelId;
+                    a.textContent = modelName.replace('Tesla ', '');
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        document.getElementById(modelId).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                    li.appendChild(a);
+                    sidebarModels.appendChild(li);
+                }
 
                 // Create row layout for side-by-side charts
                 const row = document.createElement('div');
@@ -1461,34 +1573,24 @@
                     }
                 });
             }
-            // Scroll-spy: highlight active sidebar link
-            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
-            const sectionIds = [...sidebarLinks].map(a => a.getAttribute('href').slice(1));
-
+            // Scroll-spy: highlight active sidebar link (re-queries DOM each time for dynamic model links)
             function updateActiveSidebar() {
-                let current = sectionIds[0];
-                for (const id of sectionIds) {
+                const allLinks = document.querySelectorAll('.sidebar-nav a');
+                const ids = [...allLinks].map(a => a.getAttribute('href').slice(1));
+                let current = ids[0];
+                for (const id of ids) {
                     const el = document.getElementById(id);
                     if (el && el.getBoundingClientRect().top <= 120) {
                         current = id;
                     }
                 }
-                sidebarLinks.forEach(a => {
+                allLinks.forEach(a => {
                     a.classList.toggle('active', a.getAttribute('href') === '#' + current);
                 });
             }
 
             window.addEventListener('scroll', updateActiveSidebar, { passive: true });
             updateActiveSidebar();
-
-            // Smooth scroll for sidebar links
-            sidebarLinks.forEach(a => {
-                a.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const target = document.getElementById(a.getAttribute('href').slice(1));
-                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                });
-            });
         });
     </script>
 </body>
