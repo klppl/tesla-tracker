@@ -96,11 +96,11 @@ def get_analytics_data():
         analytics["averages"][model]["mileages"].append(round(row['avg_mileage_mil'], 1))
         analytics["averages"][model]["counts"].append(row['count'])
 
-    # 2. Scatter Data (All cars) - Price vs Mileage in 'mil'
+    # 2. Scatter Data (active cars only) - Price vs Mileage in 'mil'
     cursor.execute('''
-        SELECT model, version, year, price, mileage / 10.0 as mileage_mil, url
+        SELECT model, version, year, price, mileage / 10.0 as mileage_mil, url, source
         FROM cars
-        WHERE price IS NOT NULL AND mileage IS NOT NULL
+        WHERE price IS NOT NULL AND mileage IS NOT NULL AND status = 'active'
     ''')
     for row in cursor.fetchall():
         model = f"Tesla {row['model']}"
@@ -116,6 +116,7 @@ def get_analytics_data():
             "model": model,
             "url": row['url'],
             "kr_mil": kr_per_mil,
+            "source": row['source'],
         }
         analytics["scatter"][model].append(point)
         analytics["scatter_all"].append(point)

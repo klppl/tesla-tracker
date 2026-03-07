@@ -243,6 +243,27 @@
             color: #fff;
         }
 
+        .model-filter-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid var(--border);
+            color: var(--text-secondary);
+            padding: 5px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .model-filter-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .model-filter-btn.active {
+            color: #fff;
+        }
+
         .mileage-filter {
             display: flex;
             align-items: center;
@@ -635,6 +656,8 @@
             <h2 class="chart-title">Fynd-radar – Alla modeller</h2>
             <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
             <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
+            <div class="year-filters" id="model-filters"></div>
+            <div class="year-filters" id="source-filters"></div>
             <div class="year-filters" id="year-filters"></div>
             <div class="mileage-filter" id="mileage-filter">
                 <label class="mileage-filter-label">Miltal:</label>
@@ -1344,6 +1367,66 @@
                 mileageMaxInput.addEventListener('input', updateScatterAll);
                 renderMileagePresets();
 
+                // Source filter buttons
+                const allSources = [...new Set(allPoints.map(pt => pt.source))].filter(Boolean).sort();
+                const activeSources = new Set(allSources);
+                const sourceContainer = document.getElementById('source-filters');
+
+                function renderSourceButtons() {
+                    sourceContainer.innerHTML = '';
+                    allSources.forEach(source => {
+                        const btn = document.createElement('button');
+                        btn.className = 'year-filter-btn' + (activeSources.has(source) ? ' active' : '');
+                        btn.textContent = source;
+                        btn.addEventListener('click', () => {
+                            if (activeSources.has(source)) {
+                                activeSources.delete(source);
+                            } else {
+                                activeSources.add(source);
+                            }
+                            btn.classList.toggle('active');
+                            updateScatterAll();
+                        });
+                        sourceContainer.appendChild(btn);
+                    });
+                }
+                renderSourceButtons();
+
+                // Model filter buttons (colored like scatter dots)
+                const allModels = [...new Set(allPoints.map(pt => pt.model))].filter(Boolean).sort();
+                const activeModels = new Set(allModels);
+                const modelFilterContainer = document.getElementById('model-filters');
+
+                function renderModelButtons() {
+                    modelFilterContainer.innerHTML = '';
+                    allModels.forEach(model => {
+                        const color = modelColors[model] || defaultColor;
+                        const btn = document.createElement('button');
+                        btn.className = 'model-filter-btn' + (activeModels.has(model) ? ' active' : '');
+                        btn.textContent = model.replace('Tesla ', '');
+                        if (activeModels.has(model)) {
+                            btn.style.borderColor = color;
+                            btn.style.background = color + '25';
+                            btn.style.color = '#fff';
+                        } else {
+                            btn.style.borderColor = '';
+                            btn.style.background = '';
+                            btn.style.color = '';
+                        }
+                        btn.addEventListener('click', () => {
+                            if (activeModels.has(model)) {
+                                activeModels.delete(model);
+                            } else {
+                                activeModels.add(model);
+                            }
+                            renderModelButtons();
+                            updateScatterAll();
+                        });
+                        modelFilterContainer.appendChild(btn);
+                    });
+                }
+                renderModelButtons();
+
                 // Collect unique years and build filter buttons
                 const allYears = [...new Set(allPoints.map(pt => pt.year))].filter(Boolean).sort();
                 const activeYears = new Set(allYears);
@@ -1449,7 +1532,10 @@
                     const minMil = parseFloat(mileageMinInput.value) || 0;
                     const maxMil = parseFloat(mileageMaxInput.value) || Infinity;
                     const filtered = allPoints.filter(pt =>
-                        activeYears.has(pt.year) && pt.x >= minMil && pt.x <= maxMil
+                        activeYears.has(pt.year) &&
+                        activeModels.has(pt.model) &&
+                        activeSources.has(pt.source) &&
+                        pt.x >= minMil && pt.x <= maxMil
                     );
                     scatterAllChart.data.datasets = buildDatasets(filtered);
                     scatterAllChart.update();
@@ -1507,11 +1593,14 @@
                 // --- Scatter Chart Card ---
                 const scatterCard = document.createElement('div');
                 scatterCard.className = 'chart-card';
+                const scatterId = modelName.replace(/\s+/g, '-');
                 scatterCard.innerHTML = `
                     <h3 class="chart-title">Fynd-radar (Pris vs Miltal)</h3>
                     <p class="chart-subtitle">Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
+                    <div class="year-filters" id="year-filters-${scatterId}"></div>
+                    <div class="year-filters" id="mileage-filters-${scatterId}"></div>
                     <div class="chart-container scatter-chart">
-                        <canvas id="scatter-chart-${modelName.replace(/\s+/g, '-')}"></canvas>
+                        <canvas id="scatter-chart-${scatterId}"></canvas>
                     </div>
                 `;
 
@@ -1583,32 +1672,106 @@
 
                 // Initialize Scatter Chart
                 const colors = ['#38bdf8', '#818cf8', '#f472b6', '#34d399', '#fbbf24', '#a78bfa'];
-                // Group scatter data by Year to give them different colors/labels
-                const datasetsByYear = {};
-                scatterData.forEach(pt => {
-                    const y = pt.year || 'Unknown';
-                    if (!datasetsByYear[y]) datasetsByYear[y] = [];
-                    datasetsByYear[y].push(pt);
+
+                const sortedYears = [...new Set(scatterData.map(pt => pt.year))].filter(Boolean).sort();
+                const yearColorMap = {};
+                sortedYears.forEach((year, idx) => {
+                    yearColorMap[year] = colors[idx % colors.length];
                 });
 
-                const scatterDatasets = Object.keys(datasetsByYear).sort().map((year, idx) => {
-                    return {
-                        label: year,
-                        data: datasetsByYear[year],
-                        backgroundColor: colors[idx % colors.length] + '99',
-                        borderColor: colors[idx % colors.length],
-                        pointRadius: 6,
-                        pointHoverRadius: 9,
-                        pointHoverBackgroundColor: '#fff',
-                    }
-                });
-                const goldenModel = goldenDataset(findGoldenCar(scatterData));
-                if (goldenModel) scatterDatasets.push(goldenModel);
+                const activeModelYears = new Set(sortedYears);
 
-                const ctxScatter = document.getElementById(`scatter-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
-                new Chart(ctxScatter, {
+                function buildModelScatterDatasets(data) {
+                    const byYear = {};
+                    data.forEach(pt => {
+                        const y = pt.year || 'Unknown';
+                        if (!byYear[y]) byYear[y] = [];
+                        byYear[y].push(pt);
+                    });
+                    const ds = Object.keys(byYear).sort().map(year => {
+                        const c = yearColorMap[year] || '#a78bfa';
+                        return {
+                            label: year,
+                            data: byYear[year],
+                            backgroundColor: c + '99',
+                            borderColor: c,
+                            pointRadius: 6,
+                            pointHoverRadius: 9,
+                            pointHoverBackgroundColor: '#fff',
+                        };
+                    });
+                    const golden = goldenDataset(findGoldenCar(data));
+                    if (golden) ds.push(golden);
+                    return ds;
+                }
+
+                // Year filter buttons for per-model scatter
+                const modelYearContainer = document.getElementById(`year-filters-${scatterId}`);
+                function renderModelYearButtons() {
+                    modelYearContainer.innerHTML = '';
+                    sortedYears.forEach(year => {
+                        const c = yearColorMap[year];
+                        const btn = document.createElement('button');
+                        btn.className = 'model-filter-btn' + (activeModelYears.has(year) ? ' active' : '');
+                        btn.textContent = year;
+                        if (activeModelYears.has(year)) {
+                            btn.style.borderColor = c;
+                            btn.style.background = c + '25';
+                            btn.style.color = '#fff';
+                        }
+                        btn.addEventListener('click', () => {
+                            if (activeModelYears.has(year)) {
+                                activeModelYears.delete(year);
+                            } else {
+                                activeModelYears.add(year);
+                            }
+                            renderModelYearButtons();
+                            updateModelScatter();
+                        });
+                        modelYearContainer.appendChild(btn);
+                    });
+                }
+                renderModelYearButtons();
+
+                // Mileage preset buttons for per-model scatter
+                const modelMileagePresets = [
+                    { label: 'Alla', max: Infinity },
+                    { label: '< 2 500', max: 2500 },
+                    { label: '< 5 000', max: 5000 },
+                    { label: '< 7 500', max: 7500 },
+                    { label: '< 10 000', max: 10000 },
+                ];
+                let activeModelMileageMax = Infinity;
+                const modelMileageContainer = document.getElementById(`mileage-filters-${scatterId}`);
+
+                function renderModelMileageButtons() {
+                    modelMileageContainer.innerHTML = '';
+                    modelMileagePresets.forEach(p => {
+                        const btn = document.createElement('button');
+                        btn.className = 'mileage-preset-btn' + (activeModelMileageMax === p.max ? ' active' : '');
+                        btn.textContent = p.label;
+                        btn.addEventListener('click', () => {
+                            activeModelMileageMax = p.max;
+                            renderModelMileageButtons();
+                            updateModelScatter();
+                        });
+                        modelMileageContainer.appendChild(btn);
+                    });
+                }
+                renderModelMileageButtons();
+
+                function updateModelScatter() {
+                    const filtered = scatterData.filter(pt =>
+                        activeModelYears.has(pt.year) && pt.x <= activeModelMileageMax
+                    );
+                    modelScatterChart.data.datasets = buildModelScatterDatasets(filtered);
+                    modelScatterChart.update();
+                }
+
+                const ctxScatter = document.getElementById(`scatter-chart-${scatterId}`).getContext('2d');
+                const modelScatterChart = new Chart(ctxScatter, {
                     type: 'scatter',
-                    data: { datasets: scatterDatasets },
+                    data: { datasets: buildModelScatterDatasets(scatterData) },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -1620,6 +1783,7 @@
                             }
                         },
                         plugins: {
+                            legend: { display: false },
                             tooltip: {
                                 backgroundColor: 'rgba(30, 41, 59, 0.95)',
                                 titleColor: '#f8fafc',
@@ -1663,12 +1827,23 @@
                 const allLinks = document.querySelectorAll('.sidebar-nav a');
                 const ids = [...allLinks].map(a => a.getAttribute('href').slice(1));
                 let current = ids[0];
-                for (const id of ids) {
-                    const el = document.getElementById(id);
-                    if (el && el.getBoundingClientRect().top <= 120) {
-                        current = id;
+
+                // If scrolled to bottom, pick last section
+                const atBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 50);
+                if (atBottom) {
+                    // Find last existing section
+                    for (let i = ids.length - 1; i >= 0; i--) {
+                        if (document.getElementById(ids[i])) { current = ids[i]; break; }
+                    }
+                } else {
+                    for (const id of ids) {
+                        const el = document.getElementById(id);
+                        if (el && el.getBoundingClientRect().top <= 120) {
+                            current = id;
+                        }
                     }
                 }
+
                 allLinks.forEach(a => {
                     a.classList.toggle('active', a.getAttribute('href') === '#' + current);
                 });
