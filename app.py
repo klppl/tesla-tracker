@@ -43,8 +43,16 @@ def get_analytics_data():
     for row in cursor.fetchall():
         analytics["summary"]["by_source"][row["source"]] = row["cnt"]
 
-    # Last updated timestamp
-    cursor.execute("SELECT MAX(created_at) FROM cars")
+    # Last updated timestamp — use most recent of: snapshot date, car added, car removed
+    cursor.execute('''
+        SELECT MAX(ts) FROM (
+            SELECT MAX(date) as ts FROM price_snapshots
+            UNION ALL
+            SELECT MAX(created_at) as ts FROM cars
+            UNION ALL
+            SELECT MAX(removed_at) as ts FROM cars WHERE removed_at IS NOT NULL
+        )
+    ''')
     last_row = cursor.fetchone()
     if last_row and last_row[0]:
         analytics["summary"]["last_updated"] = last_row[0]
