@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
     <title>Tesla Tracker</title>
     <!-- Modern font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -12,6 +13,10 @@
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0"></script>
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         :root {
             --bg-color: #000000;
             --card-bg: rgba(24, 24, 27, 0.8);
@@ -156,6 +161,7 @@
             display: flex;
             flex-direction: column;
             gap: 40px;
+            overflow: hidden;
         }
 
         .section-title {
@@ -171,7 +177,7 @@
 
         .charts-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(600px, 100%), 1fr));
             gap: 30px;
         }
 
@@ -183,6 +189,8 @@
             backdrop-filter: blur(12px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .chart-card:hover {
@@ -550,6 +558,253 @@
         @media (max-width: 1000px) {
             .charts-row {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tablet */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px 10px;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+                letter-spacing: 0.2em;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .page-layout {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .dashboard-container {
+                width: 100%;
+                min-width: 0;
+                gap: 24px;
+            }
+
+            .hero-section {
+                padding: 20px 16px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .hero-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .hero-stat {
+                padding: 10px 12px;
+            }
+
+            .hero-stat-value {
+                font-size: 1.1rem;
+            }
+
+            .hero-count-chip {
+                font-size: 0.75rem;
+                padding: 5px 10px;
+            }
+
+            .hero-counts {
+                gap: 8px;
+            }
+
+            .chart-card {
+                padding: 16px;
+                border-radius: 12px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+
+            .chart-container.scatter-chart canvas {
+                height: 300px;
+            }
+
+            .chart-title {
+                font-size: 1.1rem;
+            }
+
+            .chart-subtitle {
+                font-size: 0.8rem;
+            }
+
+            .section-title {
+                font-size: 1.2rem;
+            }
+
+            .year-filter-btn,
+            .model-filter-btn {
+                padding: 4px 10px;
+                font-size: 0.75rem;
+            }
+
+            .mileage-preset-btn {
+                padding: 4px 8px;
+                font-size: 0.72rem;
+            }
+
+            .mileage-filter-label {
+                font-size: 0.78rem;
+            }
+
+            .mileage-custom input[type="number"] {
+                width: 65px;
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 480px) {
+            body {
+                padding: 12px 6px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+                letter-spacing: 0.15em;
+            }
+
+            .subtitle {
+                font-size: 0.8rem;
+                margin-bottom: 1rem;
+            }
+
+            .page-layout {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .dashboard-container {
+                width: 100%;
+                min-width: 0;
+                gap: 16px;
+            }
+
+            .hero-section {
+                padding: 14px 10px;
+                border-radius: 10px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .hero-grid {
+                gap: 16px;
+            }
+
+            .hero-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .hero-stat {
+                padding: 8px 10px;
+            }
+
+            .hero-stat-value {
+                font-size: 0.95rem;
+            }
+
+            .hero-stat-value.accent {
+                font-size: 0.95rem;
+            }
+
+            .hero-stat-label {
+                font-size: 0.6rem;
+            }
+
+            .hero-count-chip {
+                font-size: 0.7rem;
+                padding: 4px 8px;
+            }
+
+            .hero-counts {
+                gap: 6px;
+            }
+
+            .hero-explainer h3 {
+                font-size: 0.9rem;
+            }
+
+            .hero-explainer p {
+                font-size: 0.78rem;
+            }
+
+            .hero-step {
+                font-size: 0.75rem;
+            }
+
+            .chart-card {
+                padding: 12px;
+                border-radius: 10px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .chart-container {
+                height: 260px;
+            }
+
+            .chart-title {
+                font-size: 1rem;
+            }
+
+            .chart-subtitle {
+                font-size: 0.72rem;
+                margin-bottom: 12px;
+            }
+
+            .section-title {
+                font-size: 1rem;
+                letter-spacing: 0.1em;
+            }
+
+            .year-filter-btn,
+            .model-filter-btn {
+                padding: 3px 8px;
+                font-size: 0.7rem;
+                border-radius: 6px;
+            }
+
+            .mileage-preset-btn {
+                padding: 3px 6px;
+                font-size: 0.68rem;
+            }
+
+            .mileage-filter {
+                gap: 6px;
+            }
+
+            .year-filters {
+                gap: 5px;
+            }
+
+            .charts-row {
+                gap: 16px;
+            }
+
+            .summary-value {
+                font-size: 1.1rem;
+            }
+
+            .summary-label {
+                font-size: 0.6rem;
+            }
+
+            .summary-bar {
+                padding: 0.8rem 1rem;
+                gap: 1rem;
             }
         }
     </style>

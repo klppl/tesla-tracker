@@ -9,7 +9,9 @@
       "Bash(git merge:*)",
       "Bash(git push:*)",
       "Bash(curl:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(source .venv/bin/activate)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }
