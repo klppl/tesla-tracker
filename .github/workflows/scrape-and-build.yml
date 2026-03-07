@@ -26,10 +26,32 @@ jobs:
         run: uv pip install flask requests --system
 
       - name: Run scraper
-        run: python scraper.py
+        run: python scraper.py 2>&1 | tee /tmp/scraper-output.txt
 
       - name: Generate static site
-        run: python app.py --static
+        run: python app.py --static 2>&1 | tee /tmp/build-output.txt
+
+      - name: Write log entry
+        run: |
+          mkdir -p public
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+          {
+            echo "=== $TIMESTAMP ==="
+            echo ""
+            echo "--- Scraper ---"
+            cat /tmp/scraper-output.txt
+            echo ""
+            echo "--- Static build ---"
+            cat /tmp/build-output.txt
+            echo ""
+            echo ""
+          } > /tmp/new-entry.txt
+          if [ -f public/log.txt ]; then
+            cat /tmp/new-entry.txt public/log.txt > /tmp/merged-log.txt
+            mv /tmp/merged-log.txt public/log.txt
+          else
+            mv /tmp/new-entry.txt public/log.txt
+          fi
 
       - name: Commit updated data and static site
         run: |
