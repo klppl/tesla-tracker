@@ -4,6 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Följ begagnatmarknaden för Tesla i Sverige. Daglig data från wayke.se och carla.se – prisutveckling, fynd-radar och marknadsanalys.">
+    <meta name="theme-color" content="#000000">
+    <!-- Open Graph -->
+    <meta property="og:title" content="Tesla Tracker">
+    <meta property="og:description" content="Följ begagnatmarknaden för Tesla i Sverige. Daglig data från wayke.se och carla.se – prisutveckling, fynd-radar och marknadsanalys.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="sv_SE">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
     <title>Tesla Tracker</title>
     <!-- Preconnect to CDNs for faster resource loading -->
@@ -818,6 +825,13 @@
 
 <body>
 
+    <noscript>
+        <div style="background:#18181b;color:#a1a1aa;text-align:center;padding:3rem 1rem;font-family:sans-serif;">
+            <h1 style="color:#fff;font-size:1.5rem;">Tesla Tracker kräver JavaScript</h1>
+            <p>Aktivera JavaScript i din webbläsare för att se dashboarden.</p>
+        </div>
+    </noscript>
+
     <h1>T<span>E</span>SLA TRACK<span>E</span>R</h1>
     <p class="subtitle">Begagnatmarknaden för Tesla i Sverige</p>
     {% if analytics_data and analytics_data.summary and analytics_data.summary.last_updated %}
@@ -959,6 +973,22 @@
                 </div>
             </div>
         </div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Köp-/säljtiming – Veckodag</h2>
+                <p class="chart-subtitle">Vilken dag läggs flest bilar upp? Staplar = antal, linje = snittpris.</p>
+                <div class="chart-container">
+                    <canvas id="chart-timing-weekday"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title">Köp-/säljtiming – Månad</h2>
+                <p class="chart-subtitle">Vilken månad är bilarna billigast? Staplar = antal, linje = snittpris.</p>
+                <div class="chart-container">
+                    <canvas id="chart-timing-month"></canvas>
+                </div>
+            </div>
+        </div>
 
         <!-- Utrustning & Färg -->
         <h2 id="section-equipment" class="section-title">Utrustning & Färg</h2>
@@ -998,22 +1028,6 @@
                 <div id="prediction-cards" style="display:flex;flex-wrap:wrap;gap:16px;padding:20px 0;"></div>
             </div>
         </div>
-        <div class="charts-row">
-            <div class="chart-card">
-                <h2 class="chart-title">Köp-/säljtiming – Veckodag</h2>
-                <p class="chart-subtitle">Vilken dag läggs flest bilar upp? Staplar = antal, linje = snittpris.</p>
-                <div class="chart-container">
-                    <canvas id="chart-timing-weekday"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <h2 class="chart-title">Köp-/säljtiming – Månad</h2>
-                <p class="chart-subtitle">Vilken månad är bilarna billigast? Staplar = antal, linje = snittpris.</p>
-                <div class="chart-container">
-                    <canvas id="chart-timing-month"></canvas>
-                </div>
-            </div>
-        </div>
 
         <!-- Global Trends -->
         <div id="section-daily" class="chart-card" style="margin-top: 20px;">
@@ -1029,6 +1043,11 @@
         {% endif %}
     </div>
     </div><!-- /page-layout -->
+
+    <footer style="width:100%;max-width:1800px;margin-top:60px;padding:32px 20px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;color:#71717a;font-size:0.78rem;line-height:1.8;">
+        <p style="margin:0 0 8px;">Data hämtas dagligen från <a href="https://www.wayke.se" target="_blank" rel="noopener" style="color:#a1a1aa;text-decoration:underline;">wayke.se</a> och <a href="https://www.carla.se" target="_blank" rel="noopener" style="color:#a1a1aa;text-decoration:underline;">carla.se</a></p>
+        <p style="margin:0;">Byggd med Chart.js &amp; Flask · <a href="https://github.com/klppl" target="_blank" rel="noopener" style="color:#a1a1aa;text-decoration:underline;">GitHub</a></p>
+    </footer>
 
     <!-- Inject data securely to JS -->
     <script id="chart-data" type="application/json">
@@ -1065,7 +1084,8 @@
                     if (entry.isIntersecting) {
                         const initFn = entry.target._lazyChartInit;
                         if (initFn) {
-                            initFn();
+                            // Delay one frame so container is fully laid out before Chart.js measures it
+                            requestAnimationFrame(() => initFn());
                             delete entry.target._lazyChartInit;
                         }
                         lazyChartObserver.unobserve(entry.target);
