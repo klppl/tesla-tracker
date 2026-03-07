@@ -150,6 +150,95 @@
             color: #fff;
         }
 
+        .range-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .range-filter label {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .range-filter input[type="number"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            width: 100px;
+            transition: all 0.2s ease;
+        }
+
+        .range-filter input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.14);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .range-filter span {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .summary-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.2rem 2rem;
+            width: 100%;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .summary-stat.summary-total .summary-value {
+            color: var(--accent);
+            font-size: 1.8rem;
+        }
+
+        .summary-value {
+            font-weight: 700;
+            font-size: 1.4rem;
+            letter-spacing: 0.02em;
+        }
+
+        .summary-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+        }
+
+        .summary-divider {
+            width: 1px;
+            height: 2.5rem;
+            background: var(--border);
+        }
+
         .empty-state {
             text-align: center;
             padding: 50px;
@@ -176,11 +265,42 @@
     <div class="dashboard-container" id="dashboard">
         {% if analytics_data %}
 
+        <!-- Sammanfattning -->
+        {% if analytics_data.summary and analytics_data.summary.total > 0 %}
+        <div class="summary-bar">
+            <div class="summary-stat summary-total">
+                <span class="summary-value">{{ analytics_data.summary.total }}</span>
+                <span class="summary-label">Aktiva bilar</span>
+            </div>
+            {% for model, count in analytics_data.summary.by_model.items() %}
+            <div class="summary-stat">
+                <span class="summary-value">{{ count }}</span>
+                <span class="summary-label">{{ model }}</span>
+            </div>
+            {% endfor %}
+            <div class="summary-divider"></div>
+            {% for source, count in analytics_data.summary.by_source.items() %}
+            <div class="summary-stat">
+                <span class="summary-value">{{ count }}</span>
+                <span class="summary-label">{{ source }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Aggregerad fynd-radar -->
         <div class="chart-card">
             <h2 class="chart-title">Fynd-radar – Alla modeller</h2>
             <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
+            <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
             <div class="year-filters" id="year-filters"></div>
+            <div class="range-filter">
+                <label>Miltal:</label>
+                <input type="number" id="mileage-min" placeholder="0" min="0" step="100">
+                <span>–</span>
+                <input type="number" id="mileage-max" placeholder="Max" min="0" step="100">
+                <label>mil</label>
+            </div>
             <div class="chart-container scatter-chart">
                 <canvas id="chart-scatter-all"></canvas>
             </div>
@@ -365,7 +485,7 @@
             function goldenDataset(point) {
                 if (!point) return null;
                 return {
-                    label: 'Gyllene bilen',
+                    label: 'Bästa deal?',
                     data: [point],
                     backgroundColor: '#ffd700',
                     borderColor: '#ffd700',
@@ -804,6 +924,15 @@
                 const defaultColor = '#a78bfa';
                 const allPoints = analyticsData.scatter_all;
 
+                // Set up mileage range filter defaults
+                const mileageMinInput = document.getElementById('mileage-min');
+                const mileageMaxInput = document.getElementById('mileage-max');
+                const maxMileage = Math.ceil(Math.max(...allPoints.map(pt => pt.x)));
+                mileageMinInput.value = 0;
+                mileageMaxInput.value = maxMileage;
+                mileageMinInput.addEventListener('input', updateScatterAll);
+                mileageMaxInput.addEventListener('input', updateScatterAll);
+
                 // Collect unique years and build filter buttons
                 const allYears = [...new Set(allPoints.map(pt => pt.year))].filter(Boolean).sort();
                 const activeYears = new Set(allYears);
@@ -873,7 +1002,7 @@
                                 padding: 15,
                                 callbacks: {
                                     title: function (items) {
-                                        if (items.length && items[0].dataset.label === 'Gyllene bilen') return 'Gyllene bilen';
+                                        if (items.length && items[0].dataset.label === 'Bästa deal?') return 'Bästa deal?';
                                         return '';
                                     },
                                     label: function (ctx) {
@@ -906,7 +1035,11 @@
                 });
 
                 function updateScatterAll() {
-                    const filtered = allPoints.filter(pt => activeYears.has(pt.year));
+                    const minMil = parseFloat(mileageMinInput.value) || 0;
+                    const maxMil = parseFloat(mileageMaxInput.value) || Infinity;
+                    const filtered = allPoints.filter(pt =>
+                        activeYears.has(pt.year) && pt.x >= minMil && pt.x <= maxMil
+                    );
                     scatterAllChart.data.datasets = buildDatasets(filtered);
                     scatterAllChart.update();
                 }
@@ -1065,7 +1198,7 @@
                                 padding: 15,
                                 callbacks: {
                                     title: function (items) {
-                                        if (items.length && items[0].dataset.label === 'Gyllene bilen') return 'Gyllene bilen';
+                                        if (items.length && items[0].dataset.label === 'Bästa deal?') return 'Bästa deal?';
                                         return '';
                                     },
                                     label: function (ctx) {

@@ -19,6 +19,7 @@ def get_analytics_data():
     cursor = conn.cursor()
     
     analytics = {
+        "summary": {"total": 0, "by_model": {}, "by_source": {}},
         "averages": {},
         "scatter": {},
         "scatter_all": [],
@@ -31,6 +32,16 @@ def get_analytics_data():
         "listing_timing": {"by_weekday": [], "by_month": []},
         "price_prediction": {},
     }
+
+    # Summary stats
+    cursor.execute("SELECT COUNT(*) FROM cars WHERE status = 'active'")
+    analytics["summary"]["total"] = cursor.fetchone()[0]
+    cursor.execute("SELECT model, COUNT(*) as cnt FROM cars WHERE status = 'active' GROUP BY model ORDER BY cnt DESC")
+    for row in cursor.fetchall():
+        analytics["summary"]["by_model"][row["model"]] = row["cnt"]
+    cursor.execute("SELECT source, COUNT(*) as cnt FROM cars WHERE status = 'active' GROUP BY source ORDER BY cnt DESC")
+    for row in cursor.fetchall():
+        analytics["summary"]["by_source"][row["source"]] = row["cnt"]
     
     # 1. Averages by Model and Year. Convert mileage (in km) to 'mil' (divide by 10)
     cursor.execute('''

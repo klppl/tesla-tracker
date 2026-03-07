@@ -1,12 +1,20 @@
 # Tesla Tracker
 
-Analysverktyg för begagnade Teslor på den svenska marknaden. Scrapar annonser från [Carla.se](https://www.carla.se) och visar pris- och miltrender i en interaktiv dashboard.
+Analysverktyg för begagnade Teslor på den svenska marknaden. Scrapar annonser från [Carla.se](https://www.carla.se) och [Wayke.se](https://www.wayke.se), lagrar data i SQLite och visar en interaktiv dashboard med pris- och marknadstrender.
 
 ## Funktioner
 
-- **Scraper** – Hämtar aktuella Tesla-annonser via Carlas Algolia-API
-- **Dashboard** – Visar pris vs miltal per modell, snittpris per årsmodell och dagliga annonstillägg
-- **Fynd-radar** – Scatter-diagram där du kan klicka på punkter för att öppna annonsen direkt
+- **Multi-scraper** – Hämtar annonser från Carla.se (Algolia API) och Wayke.se (intern sök-API), med full paginering och rate limiting
+- **Fynd-radar** – Scatter-diagram (pris vs miltal) för alla modeller. Klicka på en punkt för att öppna annonsen. "Gyllene bilen" markeras med en guldstjärna (linjär regression hittar mest underprissatta bilen)
+- **Sammanfattning** – Antal aktiva bilar per modell och datakälla
+- **Prisutveckling** – Snitt- och medianpris per modell över tid (dagliga snapshots)
+- **Marknadstrender** – Tid på marknaden, sålda bilar, kr/mil-beräkning
+- **Utrustningsanalys** – Priseffekt av dragkrok, vinterdäck m.m.
+- **Färgstatistik** – Snittpris per färg
+- **Värdeminskningskurva** – Pris per ålder per modell
+- **Köp-/säljtiming** – Annonsfördelning per veckodag och månad
+- **Prisprediktering** – Linjär extrapolering 90 dagar framåt
+- **Automatisk daglig uppdatering** – GitHub Actions kör scraper + statisk build varje dag kl 06:00 UTC
 
 ## Kom igång
 
@@ -26,11 +34,13 @@ uv pip install flask requests
 
 ### 3. Kör scrapern
 
-Hämtar annonser och sparar dem i en lokal SQLite-databas (`tesla_cars.db`):
+Hämtar alla Tesla-annonser från samtliga källor och sparar i en lokal SQLite-databas (`tesla_cars.db`):
 
 ```bash
 uv run scraper.py
 ```
+
+Scrapern hämtar alla sidor automatiskt med 1,5 sekunders fördröjning mellan requests och exponentiell backoff vid rate limiting (HTTP 429).
 
 ### 4. Starta dashboarden
 
@@ -53,13 +63,29 @@ Skapar `public/index.html` som kan öppnas direkt i webbläsaren eller hostas va
 ## Projektstruktur
 
 ```
-├── app.py           # Flask-app (--server) och statisk generator (--static)
-├── database.py      # Databasschema och anslutning (SQLite)
-├── scraper.py       # Hämtar annonser från Carla.se
+├── app.py              # Flask-app (--server) och statisk generator (--static)
+├── database.py         # Databasschema och anslutning (SQLite)
+├── scraper.py          # Orkestrator: kör alla scrapers, sparar data, tar snapshots
+├── scrapers/
+│   ├── __init__.py     # Scraper-registry (ALL_SCRAPERS)
+│   ├── base.py         # BaseScraper – gemensamt bilformat
+│   ├── carla.py        # Carla.se via Algolia API
+│   └── wayke.py        # Wayke.se via intern sök-API
 ├── templates/
-│   └── index.html   # Dashboard-vy med Chart.js-diagram
-└── tesla_cars.db    # SQLite-databas (skapas automatiskt)
+│   └── index.html      # Dashboard med Chart.js-diagram
+├── public/
+│   └── index.html      # Genererad statisk sida
+├── tesla_cars.db       # SQLite-databas (skapas automatiskt)
+└── .github/workflows/
+    └── scrape-and-build.yml  # Daglig CI: scrape + static build
 ```
+
+## Lägga till en ny datakälla
+
+1. Skapa en ny fil i `scrapers/`, t.ex. `scrapers/blocket.py`
+2. Skapa en klass som ärver `BaseScraper` och implementera `fetch() -> list[dict]`
+3. Returnera bilar i det gemensamma formatet (se `scrapers/base.py` för alla fält)
+4. Registrera scrapern i `scrapers/__init__.py` genom att lägga till den i `ALL_SCRAPERS`
 
 ## Hosting med Cloudflare Pages
 
@@ -85,4 +111,6 @@ Under **Pages** → ditt projekt → **Custom domains** → lägg till din domä
 - **Python 3** med Flask
 - **SQLite** för lokal lagring
 - **Chart.js** för diagram
-- **Algolia API** (Carla.se) som datakälla
+- **Algolia API** (Carla.se) och **Wayke intern API** som datakällor
+- **GitHub Actions** för daglig automatisering
+- **Cloudflare Pages** för hosting

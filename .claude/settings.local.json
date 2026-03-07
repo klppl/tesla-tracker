@@ -4,7 +4,12 @@
       "Bash(python:*)",
       "Bash(sqlite3:*)",
       "Bash(uv run:*)",
-      "Bash(uv:*)"
+      "Bash(uv:*)",
+      "Bash(git status:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)"
     ]
   }
 }

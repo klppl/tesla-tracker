@@ -87,7 +87,7 @@ class WaykeScraper(BaseScraper):
                 "created_at": doc.get("itemPublished"),
                 "features": "",
                 "image_url": image_url,
-                "url": f"https://www.wayke.se/bil/{car_id}",
+                "url": f"https://www.wayke.se/objekt/{car_id}",
                 "color": color,
                 "towbar": None,
                 "winter_wheels": None,
