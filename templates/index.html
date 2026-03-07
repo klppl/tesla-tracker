@@ -34,6 +34,77 @@
             min-height: 100vh;
         }
 
+        .page-layout {
+            display: flex;
+            width: 100%;
+            max-width: 1800px;
+            gap: 0;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            width: 200px;
+            min-width: 200px;
+            padding: 16px 0;
+            margin-right: 20px;
+            height: fit-content;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 400;
+            transition: all 0.15s ease;
+            border-left: 2px solid transparent;
+        }
+
+        .sidebar-nav a:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .sidebar-nav a.active {
+            color: var(--text-primary);
+            background: rgba(232, 33, 39, 0.08);
+            border-left-color: var(--accent);
+            font-weight: 500;
+        }
+
+        .sidebar-nav .nav-icon {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1100px) {
+            .sidebar {
+                display: none;
+            }
+            .page-layout {
+                flex-direction: column;
+            }
+        }
+
         h1 {
             font-weight: 300;
             letter-spacing: 0.3em;
@@ -57,7 +128,8 @@
 
         .dashboard-container {
             width: 100%;
-            max-width: 1600px;
+            flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
             gap: 40px;
@@ -194,6 +266,150 @@
             font-weight: 500;
         }
 
+        .hero-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        .hero-grid .summary-divider {
+            width: 1px;
+            height: 100%;
+            background: var(--border);
+        }
+
+        .hero-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .hero-stat {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .hero-stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .hero-stat-value.accent {
+            color: var(--accent);
+        }
+
+        .hero-stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+        }
+
+        .hero-counts {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .hero-count-chip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .hero-count-chip strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .hero-count-chip.total {
+            background: var(--accent-overlay);
+            border-color: rgba(232, 33, 39, 0.3);
+        }
+
+        .hero-count-chip.total strong {
+            color: var(--accent);
+        }
+
+        .hero-explainer {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .hero-explainer h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .hero-explainer p {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .hero-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hero-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .hero-step-num {
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        @media (max-width: 900px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero-grid .summary-divider {
+                width: 100%;
+                height: 1px;
+            }
+        }
+
         .summary-bar {
             display: flex;
             align-items: center;
@@ -262,12 +478,25 @@
     <h1>T<span>E</span>SLA TRACK<span>E</span>R</h1>
     <p class="subtitle">Hitta bästa bilen för pengarna</p>
 
+    <div class="page-layout">
+    <nav class="sidebar">
+        <ul class="sidebar-nav">
+            <li><a href="#section-start"><span class="nav-icon">&#9889;</span> Start</a></li>
+            <li><a href="#section-scatter"><span class="nav-icon">&#9733;</span> Fynd-radar</a></li>
+            <li><a href="#section-models"><span class="nav-icon">&#9881;</span> Per modell</a></li>
+            <li><a href="#section-trends"><span class="nav-icon">&#8593;</span> Marknadstrender</a></li>
+            <li><a href="#section-equipment"><span class="nav-icon">&#9670;</span> Utrustning & Färg</a></li>
+            <li><a href="#section-deep"><span class="nav-icon">&#9679;</span> Djupanalys</a></li>
+            <li><a href="#section-daily"><span class="nav-icon">&#9650;</span> Nya annonser</a></li>
+        </ul>
+    </nav>
+
     <div class="dashboard-container" id="dashboard">
         {% if analytics_data %}
 
         <!-- Sammanfattning -->
         {% if analytics_data.summary and analytics_data.summary.total > 0 %}
-        <div class="summary-bar">
+        <div id="section-summary" class="summary-bar">
             <div class="summary-stat summary-total">
                 <span class="summary-value">{{ analytics_data.summary.total }}</span>
                 <span class="summary-label">Aktiva bilar</span>
@@ -289,7 +518,7 @@
         {% endif %}
 
         <!-- Aggregerad fynd-radar -->
-        <div class="chart-card">
+        <div id="section-scatter" class="chart-card">
             <h2 class="chart-title">Fynd-radar – Alla modeller</h2>
             <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
             <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
@@ -307,10 +536,11 @@
         </div>
 
         <!-- Multi-model injection point -->
+        <div id="section-models"></div>
         <div id="models-container"></div>
 
         <!-- Marknadstrender -->
-        <h2 class="section-title">Marknadstrender</h2>
+        <h2 id="section-trends" class="section-title">Marknadstrender</h2>
         <div class="charts-row">
             <div class="chart-card">
                 <h2 class="chart-title">Prisutveckling över tid</h2>
@@ -329,7 +559,7 @@
         </div>
 
         <!-- Utrustning & Färg -->
-        <h2 class="section-title">Utrustning & Färg</h2>
+        <h2 id="section-equipment" class="section-title">Utrustning & Färg</h2>
         <div class="charts-row">
             <div class="chart-card">
                 <h2 class="chart-title">Utrustning vs Pris</h2>
@@ -348,7 +578,7 @@
         </div>
 
         <!-- Djupanalys -->
-        <h2 class="section-title">Djupanalys</h2>
+        <h2 id="section-deep" class="section-title">Djupanalys</h2>
         <div class="charts-row">
             <div class="chart-card">
                 <h2 class="chart-title">Värdeminskningskurva</h2>
@@ -381,7 +611,7 @@
         </div>
 
         <!-- Global Trends -->
-        <div class="chart-card" style="margin-top: 20px;">
+        <div id="section-daily" class="chart-card" style="margin-top: 20px;">
             <h2 class="chart-title">Nya annonser per dag</h2>
             <p class="chart-subtitle">Antal nyligen listade Teslor per datum</p>
             <div class="chart-container">
@@ -393,6 +623,7 @@
         <div class="empty-state">Ingen data hittades. Kör scrapern först!</div>
         {% endif %}
     </div>
+    </div><!-- /page-layout -->
 
     <!-- Inject data securely to JS -->
     <script id="chart-data" type="application/json">
@@ -1230,6 +1461,34 @@
                     }
                 });
             }
+            // Scroll-spy: highlight active sidebar link
+            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
+            const sectionIds = [...sidebarLinks].map(a => a.getAttribute('href').slice(1));
+
+            function updateActiveSidebar() {
+                let current = sectionIds[0];
+                for (const id of sectionIds) {
+                    const el = document.getElementById(id);
+                    if (el && el.getBoundingClientRect().top <= 120) {
+                        current = id;
+                    }
+                }
+                sidebarLinks.forEach(a => {
+                    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+                });
+            }
+
+            window.addEventListener('scroll', updateActiveSidebar, { passive: true });
+            updateActiveSidebar();
+
+            // Smooth scroll for sidebar links
+            sidebarLinks.forEach(a => {
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const target = document.getElementById(a.getAttribute('href').slice(1));
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
         });
     </script>
 </body>

@@ -42,7 +42,32 @@ def get_analytics_data():
     cursor.execute("SELECT source, COUNT(*) as cnt FROM cars WHERE status = 'active' GROUP BY source ORDER BY cnt DESC")
     for row in cursor.fetchall():
         analytics["summary"]["by_source"][row["source"]] = row["cnt"]
-    
+
+    # Quick stats for hero section
+    cursor.execute('''
+        SELECT
+            ROUND(AVG(price)) as avg_price,
+            MIN(price) as min_price,
+            MAX(price) as max_price,
+            ROUND(AVG(mileage) / 10.0) as avg_mileage_mil,
+            ROUND(AVG(year), 1) as avg_year,
+            MIN(year) as min_year,
+            MAX(year) as max_year
+        FROM cars
+        WHERE status = 'active' AND price IS NOT NULL
+    ''')
+    row = cursor.fetchone()
+    if row and row["avg_price"]:
+        analytics["summary"]["quick_stats"] = {
+            "avg_price": int(row["avg_price"]),
+            "min_price": int(row["min_price"]),
+            "max_price": int(row["max_price"]),
+            "avg_mileage": int(row["avg_mileage_mil"]),
+            "avg_year": row["avg_year"],
+            "min_year": int(row["min_year"]),
+            "max_year": int(row["max_year"]),
+        }
+
     # 1. Averages by Model and Year. Convert mileage (in km) to 'mil' (divide by 10)
     cursor.execute('''
         SELECT 
