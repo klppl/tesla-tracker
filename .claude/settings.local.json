@@ -11,7 +11,8 @@
       "Bash(curl:*)",
       "Bash(python3:*)",
       "Bash(source .venv/bin/activate)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(gzip -c /home/alex/GitHub/tesla-tracker/public/index.html)"
     ]
   }
 }

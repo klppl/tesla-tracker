@@ -6,12 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
     <title>Tesla Tracker</title>
+    <!-- Preconnect to CDNs for faster resource loading -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Modern font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js + zoom plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0"></script>
+    <!-- Analytics -->
+    <script defer src="https://logga.geek.nu/script.js" data-website-id="67c04ac9-2d88-422e-82a4-3aa59e3cecdb"></script>
+    <!-- Chart.js + zoom plugin (defer keeps execution order, doesn't block rendering) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1051,6 +1057,28 @@
 
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.animation = { duration: 400 };
+
+            // Lazy chart loading: only initialize charts when they scroll into view
+            const lazyChartObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const initFn = entry.target._lazyChartInit;
+                        if (initFn) {
+                            initFn();
+                            delete entry.target._lazyChartInit;
+                        }
+                        lazyChartObserver.unobserve(entry.target);
+                    }
+                });
+            }, { rootMargin: '200px' });
+
+            function lazyChart(elementId, initFn) {
+                const el = document.getElementById(elementId);
+                if (!el) return;
+                el._lazyChartInit = initFn;
+                lazyChartObserver.observe(el);
+            }
 
             // Find the "golden car": most underpriced relative to market.
             // Fits price ~ year + mileage via linear regression, then picks
@@ -1141,40 +1169,42 @@
                 };
             }
 
-            // 1. Render Daily Additions
+            // 1. Render Daily Additions (lazy)
             if (analyticsData.daily_additions && analyticsData.daily_additions.dates.length > 0) {
-                const ctxDaily = document.getElementById('chart-daily-additions').getContext('2d');
-                new Chart(ctxDaily, {
-                    type: 'bar',
-                    data: {
-                        labels: analyticsData.daily_additions.dates,
-                        datasets: [{
-                            label: 'Nya bilar tillagda',
-                            data: analyticsData.daily_additions.counts,
-                            backgroundColor: 'rgba(244, 114, 182, 0.7)',
-                            borderColor: '#f472b6',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
+                lazyChart('section-daily', () => {
+                    const ctxDaily = document.getElementById('chart-daily-additions').getContext('2d');
+                    new Chart(ctxDaily, {
+                        type: 'bar',
+                        data: {
+                            labels: analyticsData.daily_additions.dates,
+                            datasets: [{
+                                label: 'Nya bilar tillagda',
+                                data: analyticsData.daily_additions.counts,
+                                backgroundColor: 'rgba(244, 114, 182, 0.7)',
+                                borderColor: '#f472b6',
+                                borderWidth: 1,
+                                borderRadius: 4
+                            }]
                         },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { grid: { display: false } },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                                }
                             }
                         }
-                    }
+                    });
                 });
             }
 
-            // 2. Price trends over time
+            // 2. Price trends over time (lazy)
             const trendColors = {
                 'Tesla Model 3': '#38bdf8',
                 'Tesla Model Y': '#f472b6',
@@ -1182,63 +1212,65 @@
                 'Tesla Model X': '#fbbf24',
             };
             if (analyticsData.price_trends && Object.keys(analyticsData.price_trends).length > 0) {
-                const trendDatasets = [];
-                for (const [model, data] of Object.entries(analyticsData.price_trends)) {
-                    const color = trendColors[model] || '#a78bfa';
-                    trendDatasets.push({
-                        label: `${model} (snitt)`,
-                        data: data.avg,
-                        borderColor: color,
-                        backgroundColor: color + '33',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        pointRadius: 3,
-                    });
-                    trendDatasets.push({
-                        label: `${model} (median)`,
-                        data: data.median,
-                        borderColor: color,
-                        backgroundColor: color + '33',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        tension: 0.3,
-                        pointRadius: 3,
-                    });
-                }
-                // Use dates from the first model
-                const firstModel = Object.values(analyticsData.price_trends)[0];
-                const ctxTrend = document.getElementById('chart-price-trends').getContext('2d');
-                new Chart(ctxTrend, {
-                    type: 'line',
-                    data: { labels: firstModel.dates, datasets: trendDatasets },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: {
-                            tooltip: {
-                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                                titleColor: '#f8fafc',
-                                callbacks: {
-                                    label: function (ctx) {
-                                        return `${ctx.dataset.label}: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                lazyChart('chart-price-trends', () => {
+                    const trendDatasets = [];
+                    for (const [model, data] of Object.entries(analyticsData.price_trends)) {
+                        const color = trendColors[model] || '#a78bfa';
+                        trendDatasets.push({
+                            label: `${model} (snitt)`,
+                            data: data.avg,
+                            borderColor: color,
+                            backgroundColor: color + '33',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3,
+                        });
+                        trendDatasets.push({
+                            label: `${model} (median)`,
+                            data: data.median,
+                            borderColor: color,
+                            backgroundColor: color + '33',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            pointRadius: 3,
+                        });
+                    }
+                    const firstModel = Object.values(analyticsData.price_trends)[0];
+                    const ctxTrend = document.getElementById('chart-price-trends').getContext('2d');
+                    new Chart(ctxTrend, {
+                        type: 'line',
+                        data: { labels: firstModel.dates, datasets: trendDatasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                tooltip: {
+                                    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                    titleColor: '#f8fafc',
+                                    callbacks: {
+                                        label: function (ctx) {
+                                            return `${ctx.dataset.label}: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: {
-                                title: { display: true, text: 'Pris (kr)' },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            scales: {
+                                x: { grid: { display: false } },
+                                y: {
+                                    title: { display: true, text: 'Pris (kr)' },
+                                    grid: { color: 'rgba(255,255,255,0.05)' }
+                                }
                             }
                         }
-                    }
+                    });
                 });
             }
 
-            // 3. Market stats – time on market
+            // 3. Market stats – time on market (lazy)
             if (analyticsData.market_stats && Object.keys(analyticsData.market_stats).length > 0) {
+                lazyChart('chart-market-stats', () => {
                 const models = Object.keys(analyticsData.market_stats).sort();
                 const days = models.map(m => analyticsData.market_stats[m].avg_days_on_market || 0);
                 const soldCounts = models.map(m => analyticsData.market_stats[m].sold_count || 0);
@@ -1282,10 +1314,12 @@
                         }
                     }
                 });
+                });
             }
 
-            // 5. Equipment value charts (towbar + winter wheels)
+            // 5. Equipment value charts (towbar + winter wheels) (lazy)
             if (analyticsData.equipment_value && analyticsData.equipment_value.towbar) {
+                lazyChart('chart-equipment-towbar', () => {
                 function renderEquipChart(canvasId, data, title) {
                     const labels = data.map(e => `${e.label} (${e.count} st)`);
                     const prices = data.map(e => e.avg_price);
@@ -1353,10 +1387,12 @@
 
                 renderEquipChart('chart-equipment-towbar', analyticsData.equipment_value.towbar, 'Dragkrok');
                 renderEquipChart('chart-equipment-winter', analyticsData.equipment_value.winter_wheels, 'Vinterhjul');
+                });
             }
 
-            // 6. Color stats chart
+            // 6. Color stats chart (lazy)
             if (analyticsData.color_stats && analyticsData.color_stats.length > 0) {
+                lazyChart('chart-colors', () => {
                 const colorHex = {
                     'Svart': '#1a1a1a', 'Vit': '#f0f0f0', 'Grå': '#808080', 'Silver': '#c0c0c0',
                     'Blå': '#3b82f6', 'Röd': '#e82127', 'Brun': '#8B4513', 'Grön': '#22c55e',
@@ -1412,10 +1448,12 @@
                         }
                     }
                 });
+                });
             }
 
-            // 7. Depreciation curve
+            // 7. Depreciation curve (lazy)
             if (analyticsData.depreciation && Object.keys(analyticsData.depreciation).length > 0) {
+                lazyChart('chart-depreciation', () => {
                 const depDatasets = [];
                 for (const [model, data] of Object.entries(analyticsData.depreciation)) {
                     const color = trendColors[model] || '#a78bfa';
@@ -1471,6 +1509,7 @@
                             }
                         }
                     }
+                });
                 });
             }
 
@@ -1567,8 +1606,10 @@
             }
 
             if (analyticsData.listing_timing) {
-                renderTimingChart('chart-timing-weekday', analyticsData.listing_timing.by_weekday, 'Veckodag');
-                renderTimingChart('chart-timing-month', analyticsData.listing_timing.by_month, 'Månad');
+                lazyChart('chart-timing-weekday', () => {
+                    renderTimingChart('chart-timing-weekday', analyticsData.listing_timing.by_weekday, 'Veckodag');
+                    renderTimingChart('chart-timing-month', analyticsData.listing_timing.by_month, 'Månad');
+                });
             }
 
             // 10. Render Aggregated Scatter (all models) with year filters
@@ -1881,6 +1922,10 @@
                 row.appendChild(scatterCard);
                 modelsContainer.appendChild(row);
 
+                // Initialize charts lazily when model section scrolls into view
+                ((modelName, avgData, scatterData, scatterId) => {
+                lazyChart(modelId, () => {
+
                 // Initialize Average Combo Chart
                 const ctxAvg = document.getElementById(`avg-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
                 new Chart(ctxAvg, {
@@ -2096,6 +2141,9 @@
                         }
                     }
                 });
+
+                }); // end lazyChart
+                })(modelName, avgData, scatterData, scatterId); // end IIFE
             }
             // Scroll-spy: highlight active sidebar link (re-queries DOM each time for dynamic model links)
             function updateActiveSidebar() {
