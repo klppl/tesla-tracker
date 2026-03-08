@@ -68,12 +68,16 @@ class WaykeScraper(BaseScraper):
                 if not image_url and formats:
                     image_url = formats[0].get("jpeg")
 
-            # Mileage: Wayke uses "mileage" field in km
-            # odometerReading.unit can be "ScandinavianMile" but mileage field is in km
-            mileage = doc.get("mileage")
+            # Mileage: Wayke "mileage" field is always in Scandinavian mil.
+            # odometerReading.value is in the unit specified by odometerReading.unit.
+            # Use odometerReading when available (more reliable), fall back to mileage * 10.
             odometer = doc.get("odometerReading", {})
-            if odometer.get("unit") == "ScandinavianMile" and mileage:
-                mileage = mileage * 10  # Convert mil to km
+            if odometer.get("unit") == "Kilometer" and odometer.get("value"):
+                mileage = odometer["value"]
+            else:
+                mileage = doc.get("mileage")
+                if mileage:
+                    mileage = mileage * 10  # Convert mil to km
 
             color = doc.get("properties", {}).get("colorName")
 

@@ -39,7 +39,7 @@ Modular scraper architecture in `scrapers/`:
 
 - **`scrapers/base.py`** – `BaseScraper` base class defining the common car dict format (id, model, version, year, price, mileage in km, color, towbar, winter_wheels, battery_range, source, etc.)
 - **`scrapers/carla.py`** – Scrapes Carla.se via Algolia API. Paginates with offset/length.
-- **`scrapers/wayke.py`** – Scrapes Wayke.se via internal search API (`/api/search/vehicles`). Mileage conversion: if `odometerReading.unit == "ScandinavianMile"`, multiply by 10 to get km.
+- **`scrapers/wayke.py`** – Scrapes Wayke.se via internal search API (`/api/search/vehicles`). Mileage: the `mileage` field is always in Scandinavian mil. Uses `odometerReading.value` when `unit == "Kilometer"`, otherwise `mileage * 10`, to store km.
 - **`scrapers/__init__.py`** – Registry: `ALL_SCRAPERS` list of instantiated scrapers.
 
 To add a new scraper: create a class extending `BaseScraper`, implement `fetch() -> list[dict]` returning the common car format, and register it in `ALL_SCRAPERS`.

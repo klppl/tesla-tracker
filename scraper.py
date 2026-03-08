@@ -34,16 +34,16 @@ def save_cars_to_db(cars):
             old_price = row[0]
             if str(old_price) != str(car["price"]):
                 cursor.execute('''
-                    UPDATE cars SET price = ?, scraped_at = CURRENT_TIMESTAMP, url = ?,
+                    UPDATE cars SET price = ?, mileage = ?, scraped_at = CURRENT_TIMESTAMP, url = ?,
                         color = ?, towbar = ?, winter_wheels = ?, battery_range = ? WHERE id = ?
-                ''', (car["price"], car["url"], car["color"], car["towbar"],
+                ''', (car["price"], car["mileage"], car["url"], car["color"], car["towbar"],
                       car["winter_wheels"], car["battery_range"], car_id))
                 updated_cars += 1
             else:
                 cursor.execute('''
-                    UPDATE cars SET scraped_at = CURRENT_TIMESTAMP, url = ?,
+                    UPDATE cars SET mileage = ?, scraped_at = CURRENT_TIMESTAMP, url = ?,
                         color = ?, towbar = ?, winter_wheels = ?, battery_range = ? WHERE id = ?
-                ''', (car["url"], car["color"], car["towbar"],
+                ''', (car["mileage"], car["url"], car["color"], car["towbar"],
                       car["winter_wheels"], car["battery_range"], car_id))
 
     conn.commit()

@@ -1061,9 +1061,53 @@
 
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(30, 41, 59, 0.9)';
+            Chart.defaults.plugins.tooltip.titleColor = '#f8fafc';
 
-            function lazyChart(elementId, initFn) {
-                initFn();
+            const fmtSEK = new Intl.NumberFormat('sv-SE');
+
+            const modelColors = {
+                'Tesla Model 3': '#38bdf8',
+                'Tesla Model Y': '#f472b6',
+                'Tesla Model S': '#34d399',
+                'Tesla Model X': '#fbbf24',
+            };
+            const defaultColor = '#a78bfa';
+
+            const scatterPointStyle = {
+                pointRadius: 6,
+                pointHoverRadius: 11,
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderWidth: 3,
+            };
+
+            function scatterOnClick(e, elements, chart) {
+                if (elements.length > 0) {
+                    const el = elements[0];
+                    const pt = chart.data.datasets[el.datasetIndex].data[el.index];
+                    if (pt.url) window.open(pt.url, '_blank');
+                }
+            }
+
+            // Normalize variant names across scrapers for filtering.
+            // Wayke: "Model 3 Long Range AWD", Carla: "Long Range AWD Facelift (Autopilot)"
+            // → both become "Long Range AWD"
+            function normalizeVariant(version, model) {
+                if (!version) return 'Okänd';
+                let v = version.trim();
+                // Remove model prefix: "Model 3 ", "Model Y ", "Tesla ", etc.
+                const prefixes = ['Tesla ' + model + ' ', model + ' ', 'Tesla '];
+                for (const p of prefixes) {
+                    if (v.startsWith(p)) { v = v.slice(p.length); break; }
+                }
+                // Remove autopilot/software suffix in parentheses
+                v = v.replace(/\s*\(.*\)\s*$/, '');
+                // Remove generation names and clean up whitespace
+                v = v.replace(/\b(Facelift|Highland|Juniper|Premium)\b/gi, '');
+                v = v.replace(/\s+/g, ' ').trim();
+                // Normalize "Performance AWD" → "Performance" (Performance is always AWD)
+                if (v === 'Performance AWD') v = 'Performance';
+                return v || 'Okänd';
             }
 
             // Find the "golden car": most underpriced relative to market.
@@ -1155,9 +1199,8 @@
                 };
             }
 
-            // 1. Render Daily Additions (lazy)
+            // 1. Render Daily Additions
             if (analyticsData.daily_additions && analyticsData.daily_additions.dates.length > 0) {
-                lazyChart('section-daily', () => {
                     const ctxDaily = document.getElementById('chart-daily-additions').getContext('2d');
                     new Chart(ctxDaily, {
                         type: 'bar',
@@ -1187,21 +1230,13 @@
                             }
                         }
                     });
-                });
             }
 
-            // 2. Price trends over time (lazy)
-            const trendColors = {
-                'Tesla Model 3': '#38bdf8',
-                'Tesla Model Y': '#f472b6',
-                'Tesla Model S': '#34d399',
-                'Tesla Model X': '#fbbf24',
-            };
+            // 2. Price trends over time
             if (analyticsData.price_trends && Object.keys(analyticsData.price_trends).length > 0) {
-                lazyChart('chart-price-trends', () => {
                     const trendDatasets = [];
                     for (const [model, data] of Object.entries(analyticsData.price_trends)) {
-                        const color = trendColors[model] || '#a78bfa';
+                        const color = modelColors[model] || '#a78bfa';
                         trendDatasets.push({
                             label: `${model} (snitt)`,
                             data: data.avg,
@@ -1237,7 +1272,7 @@
                                     titleColor: '#f8fafc',
                                     callbacks: {
                                         label: function (ctx) {
-                                            return `${ctx.dataset.label}: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                            return `${ctx.dataset.label}: ${fmtSEK.format(ctx.parsed.y)} kr`;
                                         }
                                     }
                                 }
@@ -1251,16 +1286,14 @@
                             }
                         }
                     });
-                });
             }
 
-            // 3. Market stats – time on market (lazy)
+            // 3. Market stats – time on market
             if (analyticsData.market_stats && Object.keys(analyticsData.market_stats).length > 0) {
-                lazyChart('chart-market-stats', () => {
                 const models = Object.keys(analyticsData.market_stats).sort();
                 const days = models.map(m => analyticsData.market_stats[m].avg_days_on_market || 0);
                 const soldCounts = models.map(m => analyticsData.market_stats[m].sold_count || 0);
-                const barColors = models.map(m => trendColors[m] || '#a78bfa');
+                const barColors = models.map(m => modelColors[m] || '#a78bfa');
 
                 const ctxMarket = document.getElementById('chart-market-stats').getContext('2d');
                 new Chart(ctxMarket, {
@@ -1300,12 +1333,10 @@
                         }
                     }
                 });
-                });
             }
 
-            // 5. Equipment value charts (towbar + winter wheels) (lazy)
+            // 5. Equipment value charts (towbar + winter wheels)
             if (analyticsData.equipment_value && analyticsData.equipment_value.towbar) {
-                lazyChart('chart-equipment-towbar', () => {
                 function renderEquipChart(canvasId, data, title) {
                     const labels = data.map(e => `${e.label} (${e.count} st)`);
                     const prices = data.map(e => e.avg_price);
@@ -1343,13 +1374,13 @@
                                     callbacks: {
                                         title: (items) => title,
                                         label: function (ctx) {
-                                            return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.x)} kr`;
+                                            return `Snittpris: ${fmtSEK.format(ctx.parsed.x)} kr`;
                                         },
                                         afterLabel: function (ctx) {
                                             const diff = prices[0] - prices[1];
                                             if (prices.length === 2 && ctx.dataIndex === 0) {
                                                 const sign = diff > 0 ? '+' : '';
-                                                return `Skillnad: ${sign}${new Intl.NumberFormat('sv-SE').format(diff)} kr`;
+                                                return `Skillnad: ${sign}${fmtSEK.format(diff)} kr`;
                                             }
                                             return '';
                                         }
@@ -1360,7 +1391,7 @@
                                 x: {
                                     title: { display: true, text: 'Snittpris (kr)' },
                                     grid: { color: 'rgba(255,255,255,0.05)' },
-                                    ticks: { callback: v => new Intl.NumberFormat('sv-SE').format(v) }
+                                    ticks: { callback: v => fmtSEK.format(v) }
                                 },
                                 y: {
                                     grid: { display: false },
@@ -1373,12 +1404,10 @@
 
                 renderEquipChart('chart-equipment-towbar', analyticsData.equipment_value.towbar, 'Dragkrok');
                 renderEquipChart('chart-equipment-winter', analyticsData.equipment_value.winter_wheels, 'Vinterhjul');
-                });
             }
 
-            // 6. Color stats chart (lazy)
+            // 6. Color stats chart
             if (analyticsData.color_stats && analyticsData.color_stats.length > 0) {
-                lazyChart('chart-colors', () => {
                 const colorHex = {
                     'Svart': '#1a1a1a', 'Vit': '#f0f0f0', 'Grå': '#808080', 'Silver': '#c0c0c0',
                     'Blå': '#3b82f6', 'Röd': '#e82127', 'Brun': '#8B4513', 'Grön': '#22c55e',
@@ -1417,7 +1446,7 @@
                                 titleColor: '#f8fafc',
                                 callbacks: {
                                     label: function (ctx) {
-                                        return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                        return `Snittpris: ${fmtSEK.format(ctx.parsed.y)} kr`;
                                     },
                                     afterLabel: function (ctx) {
                                         return `Antal bilar: ${colorCounts[ctx.dataIndex]}`;
@@ -1434,15 +1463,13 @@
                         }
                     }
                 });
-                });
             }
 
-            // 7. Depreciation curve (lazy)
+            // 7. Depreciation curve
             if (analyticsData.depreciation && Object.keys(analyticsData.depreciation).length > 0) {
-                lazyChart('chart-depreciation', () => {
                 const depDatasets = [];
                 for (const [model, data] of Object.entries(analyticsData.depreciation)) {
-                    const color = trendColors[model] || '#a78bfa';
+                    const color = modelColors[model] || '#a78bfa';
                     depDatasets.push({
                         label: model,
                         data: data.ages.map((age, i) => ({ x: age, y: data.prices[i] })),
@@ -1471,7 +1498,7 @@
                                         const model = ctx.dataset.label;
                                         const depData = analyticsData.depreciation[model];
                                         const idx = ctx.dataIndex;
-                                        const price = new Intl.NumberFormat('sv-SE').format(ctx.parsed.y);
+                                        const price = fmtSEK.format(ctx.parsed.y);
                                         return [
                                             `${model} (årsmodell ${depData.years[idx]})`,
                                             `Snittpris: ${price} kr`,
@@ -1496,7 +1523,6 @@
                         }
                     }
                 });
-                });
             }
 
             // 8. Price prediction cards
@@ -1505,8 +1531,8 @@
                 for (const [model, pred] of Object.entries(analyticsData.price_prediction)) {
                     const color = pred.direction === 'down' ? '#34d399' : '#e82127';
                     const arrow = pred.direction === 'down' ? '↓' : '↑';
-                    const currentFmt = new Intl.NumberFormat('sv-SE').format(pred.current_avg);
-                    const predFmt = new Intl.NumberFormat('sv-SE').format(pred.predicted_90d);
+                    const currentFmt = fmtSEK.format(pred.current_avg);
+                    const predFmt = fmtSEK.format(pred.predicted_90d);
                     const card = document.createElement('div');
                     card.style.cssText = `
                         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
@@ -1577,7 +1603,7 @@
                                 callbacks: {
                                     label: function (ctx) {
                                         if (ctx.datasetIndex === 0) return `Antal: ${ctx.parsed.y}`;
-                                        return `Snittpris: ${new Intl.NumberFormat('sv-SE').format(ctx.parsed.y)} kr`;
+                                        return `Snittpris: ${fmtSEK.format(ctx.parsed.y)} kr`;
                                     }
                                 }
                             }
@@ -1592,21 +1618,12 @@
             }
 
             if (analyticsData.listing_timing) {
-                lazyChart('chart-timing-weekday', () => {
-                    renderTimingChart('chart-timing-weekday', analyticsData.listing_timing.by_weekday, 'Veckodag');
-                    renderTimingChart('chart-timing-month', analyticsData.listing_timing.by_month, 'Månad');
-                });
+                renderTimingChart('chart-timing-weekday', analyticsData.listing_timing.by_weekday, 'Veckodag');
+                renderTimingChart('chart-timing-month', analyticsData.listing_timing.by_month, 'Månad');
             }
 
             // 10. Render Aggregated Scatter (all models) with year filters
             if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
-                const modelColors = {
-                    'Tesla Model 3': '#38bdf8',
-                    'Tesla Model Y': '#f472b6',
-                    'Tesla Model S': '#34d399',
-                    'Tesla Model X': '#fbbf24',
-                };
-                const defaultColor = '#a78bfa';
                 const allPoints = analyticsData.scatter_all;
 
                 // Set up mileage preset filter
@@ -1762,11 +1779,8 @@
                             data: byModel[model],
                             backgroundColor: color + '99',
                             borderColor: color,
-                            pointRadius: 6,
-                            pointHoverRadius: 11,
-                            pointHoverBackgroundColor: '#fff',
+                            ...scatterPointStyle,
                             pointHoverBorderColor: color,
-                            pointHoverBorderWidth: 3,
                         };
                     });
                     const golden = goldenDataset(findGoldenCar(points));
@@ -1779,17 +1793,9 @@
                     type: 'scatter',
                     data: { datasets: buildDatasets(allPoints) },
                     options: {
-
                         responsive: true,
                         maintainAspectRatio: false,
-
-                        onClick: (e, elements, chart) => {
-                            if (elements.length > 0) {
-                                const el = elements[0];
-                                const pt = chart.data.datasets[el.datasetIndex].data[el.index];
-                                if (pt.url) window.open(pt.url, '_blank');
-                            }
-                        },
+                        onClick: scatterOnClick,
                         plugins: {
                             legend: { display: false },
 
@@ -1804,14 +1810,14 @@
                                     },
                                     label: function (ctx) {
                                         const pt = ctx.raw;
-                                        const price = new Intl.NumberFormat('sv-SE').format(pt.y);
-                                        const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
+                                        const price = fmtSEK.format(pt.y);
+                                        const mil = fmtSEK.format(pt.x);
                                         const lines = [
                                             `${pt.model} – ${pt.year} ${pt.version}`,
                                             `Pris: ${price} kr`,
                                             `Miltal: ${mil} mil`,
                                         ];
-                                        if (pt.kr_mil) lines.push(`Kr/mil: ${new Intl.NumberFormat('sv-SE').format(pt.kr_mil)}`);
+                                        if (pt.kr_mil) lines.push(`Kr/mil: ${fmtSEK.format(pt.kr_mil)}`);
                                         lines.push(`Klicka för att öppna annonsen!`);
                                         return lines;
                                     }
@@ -1901,6 +1907,7 @@
                 scatterCard.innerHTML = `
                     <h3 class="chart-title">Fynd-radar (Pris vs Miltal)</h3>
                     <p class="chart-subtitle">Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
+                    <div class="year-filters" id="variant-filters-${scatterId}"></div>
                     <div class="year-filters" id="year-filters-${scatterId}"></div>
                     <div class="year-filters" id="mileage-filters-${scatterId}"></div>
                     <div class="chart-container scatter-chart">
@@ -1911,10 +1918,6 @@
                 row.appendChild(avgCard);
                 row.appendChild(scatterCard);
                 modelsContainer.appendChild(row);
-
-                // Initialize charts lazily when model section scrolls into view
-                ((modelName, avgData, scatterData, scatterId) => {
-                lazyChart(modelId, () => {
 
                 // Initialize Average Combo Chart
                 const ctxAvg = document.getElementById(`avg-chart-${modelName.replace(/\s+/g, '-')}`).getContext('2d');
@@ -1960,7 +1963,7 @@
                                 titleColor: '#f8fafc',
                                 callbacks: {
                                     label: function (context) {
-                                        let v = new Intl.NumberFormat('sv-SE').format(context.parsed.y);
+                                        let v = fmtSEK.format(context.parsed.y);
                                         let label = `${context.dataset.label}: ${v}`;
                                         if (context.datasetIndex === 0) {
                                             label += ` (Count: ${avgData.counts[context.dataIndex]})`;
@@ -2003,11 +2006,8 @@
                             data: byYear[year],
                             backgroundColor: c + '99',
                             borderColor: c,
-                            pointRadius: 6,
-                            pointHoverRadius: 11,
-                            pointHoverBackgroundColor: '#fff',
+                            ...scatterPointStyle,
                             pointHoverBorderColor: c,
-                            pointHoverBorderWidth: 3,
                         };
                     });
                     const golden = goldenDataset(findGoldenCar(data));
@@ -2070,9 +2070,48 @@
                 }
                 renderModelMileageButtons();
 
+                // Variant filter buttons for per-model scatter (normalized across scrapers)
+                const baseModel = modelName.replace('Tesla ', '');
+                const variantMap = {};  // normalized → Set of raw versions
+                scatterData.forEach(pt => {
+                    const norm = normalizeVariant(pt.version, baseModel);
+                    if (!variantMap[norm]) variantMap[norm] = new Set();
+                    variantMap[norm].add(pt.version);
+                });
+                const sortedVariants = Object.keys(variantMap).sort();
+                const activeVariants = new Set(sortedVariants);
+                const variantContainer = document.getElementById(`variant-filters-${scatterId}`);
+
+                function renderVariantButtons() {
+                    variantContainer.innerHTML = '';
+                    if (sortedVariants.length <= 1) return;
+                    sortedVariants.forEach(variant => {
+                        const count = scatterData.filter(pt => variantMap[variant].has(pt.version)).length;
+                        const btn = document.createElement('button');
+                        btn.className = 'year-filter-btn' + (activeVariants.has(variant) ? ' active' : '');
+                        btn.textContent = `${variant} (${count})`;
+                        btn.addEventListener('click', () => {
+                            if (activeVariants.has(variant)) {
+                                activeVariants.delete(variant);
+                            } else {
+                                activeVariants.add(variant);
+                            }
+                            btn.classList.toggle('active');
+                            updateModelScatter();
+                        });
+                        variantContainer.appendChild(btn);
+                    });
+                }
+                renderVariantButtons();
+
                 function updateModelScatter() {
+                    // Build set of active raw versions from active normalized variants
+                    const activeRawVersions = new Set();
+                    activeVariants.forEach(v => variantMap[v].forEach(raw => activeRawVersions.add(raw)));
                     const filtered = scatterData.filter(pt =>
-                        activeModelYears.has(pt.year) && pt.x <= activeModelMileageMax
+                        activeModelYears.has(pt.year) &&
+                        activeRawVersions.has(pt.version) &&
+                        pt.x <= activeModelMileageMax
                     );
                     modelScatterChart.data.datasets = buildModelScatterDatasets(filtered);
 
@@ -2084,17 +2123,9 @@
                     type: 'scatter',
                     data: { datasets: buildModelScatterDatasets(scatterData) },
                     options: {
-
                         responsive: true,
                         maintainAspectRatio: false,
-
-                        onClick: (e, elements, chart) => {
-                            if (elements.length > 0) {
-                                const el = elements[0];
-                                const pt = chart.data.datasets[el.datasetIndex].data[el.index];
-                                if (pt.url) window.open(pt.url, '_blank');
-                            }
-                        },
+                        onClick: scatterOnClick,
                         plugins: {
                             legend: { display: false },
 
@@ -2109,14 +2140,14 @@
                                     },
                                     label: function (ctx) {
                                         const pt = ctx.raw;
-                                        const price = new Intl.NumberFormat('sv-SE').format(pt.y);
-                                        const mil = new Intl.NumberFormat('sv-SE').format(pt.x);
+                                        const price = fmtSEK.format(pt.y);
+                                        const mil = fmtSEK.format(pt.x);
                                         const lines = [
                                             `${pt.year} ${pt.version}`,
                                             `Pris: ${price} kr`,
                                             `Miltal: ${mil} mil`,
                                         ];
-                                        if (pt.kr_mil) lines.push(`Kr/mil: ${new Intl.NumberFormat('sv-SE').format(pt.kr_mil)}`);
+                                        if (pt.kr_mil) lines.push(`Kr/mil: ${fmtSEK.format(pt.kr_mil)}`);
                                         lines.push(`Klicka för att öppna annonsen!`);
                                         return lines;
                                     }
@@ -2136,8 +2167,6 @@
                     }
                 });
 
-                }); // end lazyChart
-                })(modelName, avgData, scatterData, scatterId); // end IIFE
             }
             // Scroll-spy: highlight active sidebar link (re-queries DOM each time for dynamic model links)
             function updateActiveSidebar() {
