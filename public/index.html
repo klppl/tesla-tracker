@@ -1067,36 +1067,9 @@
 
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
-            Chart.defaults.animation = { duration: 400 };
-
-            // Lazy-initialize charts when their section scrolls into view
-            const lazyChartObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const el = entry.target;
-                        observer.unobserve(el);
-                        const initFn = el._lazyChartInit;
-                        if (initFn) {
-                            try {
-                                initFn();
-                            } catch (e) {
-                                console.error('Chart init error for', el.id, e);
-                            }
-                            delete el._lazyChartInit;
-                        }
-                    }
-                });
-            }, { rootMargin: '200px' });
 
             function lazyChart(elementId, initFn) {
-                const el = document.getElementById(elementId);
-                if (!el) {
-                    // Fallback: run immediately if element not found
-                    try { initFn(); } catch (e) { console.error('Chart init error:', e); }
-                    return;
-                }
-                el._lazyChartInit = initFn;
-                lazyChartObserver.observe(el);
+                initFn();
             }
 
             // Find the "golden car": most underpriced relative to market.
@@ -1632,7 +1605,7 @@
             }
 
             // 10. Render Aggregated Scatter (all models) with year filters
-            try { if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
+            if (analyticsData.scatter_all && analyticsData.scatter_all.length > 0) {
                 const modelColors = {
                     'Tesla Model 3': '#38bdf8',
                     'Tesla Model Y': '#f472b6',
@@ -1796,8 +1769,10 @@
                             backgroundColor: color + '99',
                             borderColor: color,
                             pointRadius: 6,
-                            pointHoverRadius: 9,
+                            pointHoverRadius: 11,
                             pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: color,
+                            pointHoverBorderWidth: 3,
                         };
                     });
                     const golden = goldenDataset(findGoldenCar(points));
@@ -1810,8 +1785,10 @@
                     type: 'scatter',
                     data: { datasets: buildDatasets(allPoints) },
                     options: {
+
                         responsive: true,
                         maintainAspectRatio: false,
+
                         onClick: (e, elements, chart) => {
                             if (elements.length > 0) {
                                 const el = elements[0];
@@ -1875,7 +1852,7 @@
                 }
 
                 renderFilterButtons();
-            } } catch (e) { console.error('Scatter-all chart error:', e); }
+            }
 
             // 6. Render Model Specific Charts
             const modelsContainer = document.getElementById('models-container');
@@ -2033,8 +2010,10 @@
                             backgroundColor: c + '99',
                             borderColor: c,
                             pointRadius: 6,
-                            pointHoverRadius: 9,
+                            pointHoverRadius: 11,
                             pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: c,
+                            pointHoverBorderWidth: 3,
                         };
                     });
                     const golden = goldenDataset(findGoldenCar(data));
@@ -2111,8 +2090,10 @@
                     type: 'scatter',
                     data: { datasets: buildModelScatterDatasets(scatterData) },
                     options: {
+
                         responsive: true,
                         maintainAspectRatio: false,
+
                         onClick: (e, elements, chart) => {
                             if (elements.length > 0) {
                                 const el = elements[0];
