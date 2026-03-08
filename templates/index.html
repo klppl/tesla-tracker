@@ -19,10 +19,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Modern font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js + zoom plugin -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
     <!-- Analytics (async = oberoende av övriga scripts, bryts inte av adblockers) -->
     <script async src="https://logga.geek.nu/script.js" data-website-id="67c04ac9-2d88-422e-82a4-3aa59e3cecdb"></script>
     <style>
@@ -931,7 +929,7 @@
         <!-- Aggregerad fynd-radar -->
         <div id="section-scatter" class="chart-card">
             <h2 class="chart-title">Fynd-radar – Alla modeller</h2>
-            <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen. Scrolla för att zooma, dra för att panorera. Dubbelklicka för att återställa.</p>
+            <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen. Filtrera med knapparna nedan.</p>
             <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
             <div class="year-filters" id="model-filters"></div>
             <div class="year-filters" id="source-filters"></div>
@@ -1061,46 +1059,6 @@
 
             const analyticsData = JSON.parse(rawData);
 
-            // Zoom/pan config for scatter charts
-            function isScaleValid(scale) {
-                return isFinite(scale.min) && isFinite(scale.max) && !isNaN(scale.min) && !isNaN(scale.max);
-            }
-            const zoomPlugin = {
-                zoom: {
-                    wheel: { enabled: true, speed: 0.05 },
-                    pinch: { enabled: true },
-                    mode: 'xy',
-                    onZoomComplete: function({chart}) {
-                        if (!isScaleValid(chart.scales.x) || !isScaleValid(chart.scales.y)) {
-                            chart.resetZoom();
-                        }
-                    },
-                },
-                pan: {
-                    enabled: true,
-                    mode: 'xy',
-                    onPanComplete: function({chart}) {
-                        if (!isScaleValid(chart.scales.x) || !isScaleValid(chart.scales.y)) {
-                            chart.resetZoom();
-                        }
-                    },
-                },
-                limits: {
-                    x: { min: -50000, max: 250000, minRange: 5 },
-                    y: { min: -500000, max: 5000000, minRange: 5000 },
-                },
-            };
-
-            // Dubbelklick för att återställa zoom på scatter-charts
-            function addDoubleClickReset(canvasId, chart) {
-                const canvas = document.getElementById(canvasId);
-                if (!canvas) return;
-                canvas.addEventListener('dblclick', function(e) {
-                    e.preventDefault();
-                    chart.resetZoom();
-                });
-            }
-
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
             Chart.defaults.animation = { duration: 400 };
@@ -1212,7 +1170,7 @@
                 if (!point) return null;
                 return {
                     label: 'Bästa deal?',
-                    data: [point],
+                    data: [{...point}],
                     backgroundColor: '#ffd700',
                     borderColor: '#ffd700',
                     borderWidth: 3,
@@ -1822,7 +1780,7 @@
                     points.forEach(pt => {
                         const m = pt.model || 'Okänd';
                         if (!byModel[m]) byModel[m] = [];
-                        byModel[m].push(pt);
+                        byModel[m].push({...pt});
                     });
                     const datasets = Object.keys(byModel).sort().map(model => {
                         const color = modelColors[model] || defaultColor;
@@ -1857,7 +1815,7 @@
                         },
                         plugins: {
                             legend: { display: false },
-                            zoom: zoomPlugin,
+
                             tooltip: {
                                 backgroundColor: 'rgba(30, 41, 59, 0.95)',
                                 titleColor: '#f8fafc',
@@ -1895,7 +1853,6 @@
                         }
                     }
                 });
-                addDoubleClickReset('chart-scatter-all', scatterAllChart);
 
                 function updateScatterAll() {
                     const minMil = parseFloat(mileageMinInput.value) || 0;
@@ -1907,7 +1864,7 @@
                         pt.x >= minMil && pt.x <= maxMil
                     );
                     scatterAllChart.data.datasets = buildDatasets(filtered);
-                    scatterAllChart.resetZoom();
+
                     scatterAllChart.update();
                 }
 
@@ -2060,7 +2017,7 @@
                     data.forEach(pt => {
                         const y = pt.year || 'Unknown';
                         if (!byYear[y]) byYear[y] = [];
-                        byYear[y].push(pt);
+                        byYear[y].push({...pt});
                     });
                     const ds = Object.keys(byYear).sort().map(year => {
                         const c = yearColorMap[year] || '#a78bfa';
@@ -2139,7 +2096,7 @@
                         activeModelYears.has(pt.year) && pt.x <= activeModelMileageMax
                     );
                     modelScatterChart.data.datasets = buildModelScatterDatasets(filtered);
-                    modelScatterChart.resetZoom();
+
                     modelScatterChart.update();
                 }
 
@@ -2159,7 +2116,7 @@
                         },
                         plugins: {
                             legend: { display: false },
-                            zoom: zoomPlugin,
+
                             tooltip: {
                                 backgroundColor: 'rgba(30, 41, 59, 0.95)',
                                 titleColor: '#f8fafc',
@@ -2197,7 +2154,6 @@
                         }
                     }
                 });
-                addDoubleClickReset(`scatter-chart-${scatterId}`, modelScatterChart);
 
                 }); // end lazyChart
                 })(modelName, avgData, scatterData, scatterId); // end IIFE
