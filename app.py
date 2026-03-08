@@ -3,7 +3,6 @@ import sqlite3
 import os
 import argparse
 from datetime import datetime
-import minify_html
 
 app = Flask(__name__)
 DB_PATH = os.path.join(os.path.dirname(__file__), "tesla_cars.db")
@@ -368,18 +367,13 @@ def generate_static():
         data = get_analytics_data()
         html = render_template('index.html', analytics_data=data)
 
-    raw_size = len(html.encode('utf-8'))
-    html = minify_html.minify(html, minify_js=True, minify_css=True,
-                              remove_processing_instructions=True)
-    min_size = len(html.encode('utf-8'))
-
     output_path = os.path.join(output_dir, "index.html")
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    reduction = round((1 - min_size / raw_size) * 100, 1)
+    size = len(html.encode('utf-8'))
     print(f"Statisk sida genererad: {output_path}")
-    print(f"  Storlek: {raw_size:,} → {min_size:,} bytes ({reduction}% mindre)")
+    print(f"  Storlek: {size:,} bytes")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Tesla Tracker")

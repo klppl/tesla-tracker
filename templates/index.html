@@ -19,12 +19,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Modern font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Analytics -->
-    <script defer src="https://logga.geek.nu/script.js" data-website-id="67c04ac9-2d88-422e-82a4-3aa59e3cecdb"></script>
     <!-- Chart.js + zoom plugin (defer keeps execution order, doesn't block rendering) -->
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+    <!-- Analytics (async = oberoende av övriga scripts, bryts inte av adblockers) -->
+    <script async src="https://logga.geek.nu/script.js" data-website-id="67c04ac9-2d88-422e-82a4-3aa59e3cecdb"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1105,26 +1105,8 @@
             Chart.defaults.font.family = "'Inter', sans-serif";
             Chart.defaults.animation = { duration: 400 };
 
-            // Lazy chart loading: only initialize charts when they scroll into view
-            const lazyChartObserver = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const initFn = entry.target._lazyChartInit;
-                        if (initFn) {
-                            // Delay one frame so container is fully laid out before Chart.js measures it
-                            requestAnimationFrame(() => initFn());
-                            delete entry.target._lazyChartInit;
-                        }
-                        lazyChartObserver.unobserve(entry.target);
-                    }
-                });
-            }, { rootMargin: '200px' });
-
             function lazyChart(elementId, initFn) {
-                const el = document.getElementById(elementId);
-                if (!el) return;
-                el._lazyChartInit = initFn;
-                lazyChartObserver.observe(el);
+                initFn();
             }
 
             // Find the "golden car": most underpriced relative to market.
