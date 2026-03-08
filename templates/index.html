@@ -831,10 +831,11 @@
     </noscript>
 
     <h1>T<span>E</span>SLA TRACK<span>E</span>R</h1>
-    <p class="subtitle">Begagnatmarknaden för Tesla i Sverige</p>
+    <p class="subtitle">Begagnatmarknaden för Tesla i Sverige
     {% if analytics_data and analytics_data.summary and analytics_data.summary.last_updated %}
-    <p class="subtitle" style="margin-top: -1.5rem; font-size: 0.75rem; opacity: 0.5;">Senast uppdaterad: {{ analytics_data.summary.last_updated[:16].replace('T', ' ') }}</p>
+    <br><span style="font-size: 0.7em; opacity: 0.5;">Senast uppdaterad: {{ analytics_data.summary.last_updated[:16].replace('T', ' ') }}</span>
     {% endif %}
+    </p>
 
     <div class="page-layout">
     <nav class="sidebar">
