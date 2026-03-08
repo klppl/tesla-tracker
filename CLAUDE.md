@@ -74,3 +74,23 @@ The template (`templates/index.html`) is a single-page dashboard using Chart.js.
 - Prices are in **SEK**
 - Car URLs: Carla uses `/bil/{objectID}`, Wayke uses `/objekt/{_id}`
 - The `source` field on each car identifies which scraper it came from (e.g. `"carla.se"`, `"wayke.se"`)
+
+## Chart.js Frontend – Known Pitfalls
+
+The dashboard template (`templates/index.html`) is a single large file with ~10 Chart.js charts. These rules exist because of bugs that were hard to track down:
+
+- **No `defer` on Chart.js script tags.** Use synchronous `<script src="...">` in `<head>`. `defer` caused race conditions where `Chart` was undefined at init time.
+- **No chartjs-plugin-zoom.** The zoom plugin registers globally and intercepts scroll/wheel events on ALL canvases, breaking page scrolling and filter buttons. It was removed entirely.
+- **Clone data points with `{...pt}`.** Chart.js mutates data objects internally (adds `$context` etc). If scatter-all and per-model charts share the same point objects, updating one chart corrupts the other. Always spread-clone in `buildDatasets` and `buildModelScatterDatasets`.
+- **No lazy loading (IntersectionObserver) for charts.** Lazy init caused charts to not render and broke filter buttons after scrolling. All charts initialize eagerly on `DOMContentLoaded`.
+- **No `Chart.defaults.events` override.** Changing the global events array broke tooltips and interactions across all charts.
+- **No `onHover` callbacks on charts.** Custom `onHover` handlers interfered with Chart.js internal event processing, breaking filter buttons.
+- **Keep chart configs simple.** Avoid `onZoomComplete`, `onPanComplete`, or any callback that calls `chart.resetZoom()` — it causes infinite recursion.
+
+### Rollback
+
+A known stable version is tagged `VERY-WORKING-VERSION`. To restore the dashboard:
+
+```bash
+git checkout VERY-WORKING-VERSION -- templates/index.html public/index.html
+```

@@ -106,6 +106,16 @@ GitHub Actions-workflowen genererar `public/index.html` dagligen och committar t
 
 Under **Pages** → ditt projekt → **Custom domains** → lägg till din domän. Cloudflare sköter SSL automatiskt.
 
+## Rollback
+
+Om dashboarden slutar fungera finns en stabil version taggad `VERY-WORKING-VERSION`:
+
+```bash
+# Återställ dashboarden till senast kända fungerande version
+git checkout VERY-WORKING-VERSION -- templates/index.html public/index.html
+git commit -m "Rollback dashboard till VERY-WORKING-VERSION"
+```
+
 ## Teknikstack
 
 - **Python 3** med Flask
