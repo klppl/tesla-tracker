@@ -14,7 +14,12 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(gzip -c /home/alex/GitHub/tesla-tracker/public/index.html)",
       "Bash(source /home/alex/GitHub/tesla-tracker/.venv/bin/activate)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(kill 166469:*)",
+      "WebFetch(domain:logga.geek.nu)"
     ]
   }
 }
