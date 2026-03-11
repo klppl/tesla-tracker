@@ -135,6 +135,20 @@
             opacity: 1;
         }
 
+        #mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: #18181b;
+            border-top: 1px solid var(--border);
+            justify-content: space-around;
+            align-items: center;
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        }
+
         @media (max-width: 1100px) {
             .sidebar {
                 display: none;
@@ -142,6 +156,40 @@
             .page-layout {
                 flex-direction: column;
             }
+            body {
+                padding-bottom: 70px;
+            }
+            #mobile-nav {
+                display: flex;
+            }
+        }
+
+        #mobile-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+            font-weight: 400;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: color 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #mobile-nav a .mob-icon {
+            font-size: 1.15rem;
+            line-height: 1;
+        }
+
+        #mobile-nav a.active {
+            color: var(--accent);
+        }
+
+        #mobile-nav a:hover {
+            color: var(--text-primary);
         }
 
         h1 {
@@ -1350,6 +1398,12 @@
         <div id="section-daily" class="chart-card" style="margin-top: 20px;">
             <h2 class="chart-title">Nya annonser per dag</h2>
             <p class="chart-subtitle">Antal nyligen listade Teslor per datum</p>
+            <div class="year-filters" id="daily-period-filters">
+                <button class="year-filter-btn active" data-days="30">30 dagar</button>
+                <button class="year-filter-btn" data-days="60">60 dagar</button>
+                <button class="year-filter-btn" data-days="90">90 dagar</button>
+                <button class="year-filter-btn" data-days="0">Alla</button>
+            </div>
             <div class="chart-container">
                 <canvas id="chart-daily-additions"></canvas>
             </div>
@@ -1543,14 +1597,28 @@
 
             // 1. Render Daily Additions
             if (analyticsData.daily_additions && analyticsData.daily_additions.dates.length > 0) {
+                    const allDailyDates = analyticsData.daily_additions.dates;
+                    const allDailyCounts = analyticsData.daily_additions.counts;
+
+                    function getDailySlice(days) {
+                        if (days === 0 || days >= allDailyDates.length) {
+                            return { dates: allDailyDates.slice(), counts: allDailyCounts.slice() };
+                        }
+                        return {
+                            dates: allDailyDates.slice(-days),
+                            counts: allDailyCounts.slice(-days)
+                        };
+                    }
+
+                    const initialSlice = getDailySlice(30);
                     const ctxDaily = document.getElementById('chart-daily-additions').getContext('2d');
-                    new Chart(ctxDaily, {
+                    const dailyChart = new Chart(ctxDaily, {
                         type: 'bar',
                         data: {
-                            labels: analyticsData.daily_additions.dates,
+                            labels: initialSlice.dates,
                             datasets: [{
                                 label: 'Nya bilar tillagda',
-                                data: analyticsData.daily_additions.counts,
+                                data: initialSlice.counts,
                                 backgroundColor: 'rgba(244, 114, 182, 0.7)',
                                 borderColor: '#f472b6',
                                 borderWidth: 1,
@@ -1571,6 +1639,20 @@
                                 }
                             }
                         }
+                    });
+
+                    document.querySelectorAll('#daily-period-filters .year-filter-btn').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            document.querySelectorAll('#daily-period-filters .year-filter-btn').forEach(function(b) {
+                                b.classList.remove('active');
+                            });
+                            btn.classList.add('active');
+                            const days = parseInt(btn.getAttribute('data-days'), 10);
+                            const slice = getDailySlice(days);
+                            dailyChart.data.labels = slice.dates;
+                            dailyChart.data.datasets[0].data = slice.counts;
+                            dailyChart.update();
+                        });
                     });
             }
 
@@ -2887,12 +2969,39 @@
                 allLinks.forEach(a => {
                     a.classList.toggle('active', a.getAttribute('href') === '#' + current);
                 });
+
+                // Also update mobile nav active state
+                // Map all sections to the closest mobile nav parent
+                const mobileMap = {
+                    'section-start': 'section-start',
+                    'section-scatter': 'section-scatter',
+                    'section-listing': 'section-scatter',
+                    'section-models': 'section-scatter',
+                    'section-trends': 'section-trends',
+                    'section-compare': 'section-trends',
+                    'section-equipment': 'section-trends',
+                    'section-deep': 'section-deep',
+                    'section-daily': 'section-deep',
+                    'section-flow': 'section-flow',
+                };
+                // Dynamic model sections (model-tesla-*) map to scatter
+                let mobileCurrent = mobileMap[current] || (current.startsWith('model-') ? 'section-scatter' : 'section-start');
+                document.querySelectorAll('#mobile-nav a').forEach(a => {
+                    a.classList.toggle('active', a.getAttribute('href') === '#' + mobileCurrent);
+                });
             }
 
             window.addEventListener('scroll', updateActiveSidebar, { passive: true });
             updateActiveSidebar();
         });
     </script>
+    <nav id="mobile-nav">
+        <a href="#section-start"><span class="mob-icon">&#9889;</span>Start</a>
+        <a href="#section-scatter"><span class="mob-icon">&#9733;</span>Fynd</a>
+        <a href="#section-trends"><span class="mob-icon">&#8593;</span>Trender</a>
+        <a href="#section-deep"><span class="mob-icon">&#9679;</span>Analys</a>
+        <a href="#section-flow"><span class="mob-icon">&#8644;</span>Fl&ouml;de</a>
+    </nav>
 </body>
 
 </html>
