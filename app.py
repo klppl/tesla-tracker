@@ -32,6 +32,8 @@ def get_analytics_data():
         "listing_timing": {"by_weekday": [], "by_month": []},
         "price_prediction": {},
         "car_flow": {"added": [], "removed": []},
+        "supply_trend": {},
+        "battery_range": {},
     }
 
     # Summary stats
@@ -412,6 +414,45 @@ def get_analytics_data():
                 "color": row["color"],
                 "date": row["removed_date"],
             })
+    except Exception:
+        pass
+
+    # 12. Supply trend – car_count per model over time from snapshots
+    try:
+        cursor.execute('''
+            SELECT date, model, car_count
+            FROM price_snapshots
+            WHERE car_count IS NOT NULL
+            ORDER BY model, date
+        ''')
+        for row in cursor.fetchall():
+            model = f"Tesla {row['model']}"
+            if model not in analytics["supply_trend"]:
+                analytics["supply_trend"][model] = {"dates": [], "counts": []}
+            analytics["supply_trend"][model]["dates"].append(row['date'])
+            analytics["supply_trend"][model]["counts"].append(row['car_count'])
+    except Exception:
+        pass
+
+    # 14. Battery range analysis
+    try:
+        # Average range per model and year
+        cursor.execute('''
+            SELECT model, year, ROUND(AVG(battery_range)) as avg_range, COUNT(*) as cnt
+            FROM cars
+            WHERE battery_range IS NOT NULL AND battery_range > 0
+              AND year IS NOT NULL AND status = 'active'
+            GROUP BY model, year
+            HAVING cnt >= 1
+            ORDER BY model, year
+        ''')
+        for row in cursor.fetchall():
+            model = f"Tesla {row['model']}"
+            if model not in analytics["battery_range"]:
+                analytics["battery_range"][model] = {"years": [], "ranges": [], "counts": []}
+            analytics["battery_range"][model]["years"].append(row['year'])
+            analytics["battery_range"][model]["ranges"].append(int(row['avg_range']))
+            analytics["battery_range"][model]["counts"].append(row['cnt'])
     except Exception:
         pass
 

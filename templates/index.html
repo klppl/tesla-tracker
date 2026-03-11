@@ -1089,6 +1089,7 @@
                 <ul class="nav-sub" id="sidebar-models"></ul>
             </li>
             <li><a href="#section-trends"><span class="nav-icon">&#8593;</span> Marknadstrender</a></li>
+            <li><a href="#section-compare"><span class="nav-icon">&#9878;</span> Prisjämförelse</a></li>
             <li><a href="#section-equipment"><span class="nav-icon">&#9670;</span> Utrustning & Färg</a></li>
             <li><a href="#section-deep"><span class="nav-icon">&#9679;</span> Djupanalys</a></li>
             <li><a href="#section-daily"><span class="nav-icon">&#9650;</span> Nya annonser</a></li>
@@ -1267,6 +1268,33 @@
                 <p class="chart-subtitle">Vilken månad är bilarna billigast? Staplar = antal, linje = snittpris.</p>
                 <div class="chart-container">
                     <canvas id="chart-timing-month"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <h2 id="section-compare" class="section-title">Prisjämförelse & Utbud</h2>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Utbud per modell över tid</h2>
+                <p class="chart-subtitle">Antal aktiva annonser per modell. Ökar eller minskar utbudet?</p>
+                <div class="chart-container">
+                    <canvas id="chart-supply-trend"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title">Pris per årsmodell</h2>
+                <p class="chart-subtitle">Snittpris per modell och årsmodell – jämför vad du får för pengarna.</p>
+                <div class="chart-container">
+                    <canvas id="chart-price-by-year"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title">Batteriräckvidd per modell</h2>
+                <p class="chart-subtitle">Genomsnittlig angiven räckvidd (km) per modell och årsmodell.</p>
+                <div class="chart-container">
+                    <canvas id="chart-battery-range"></canvas>
                 </div>
             </div>
         </div>
@@ -1928,6 +1956,171 @@
             if (analyticsData.listing_timing) {
                 renderTimingChart('chart-timing-weekday', analyticsData.listing_timing.by_weekday, 'Veckodag');
                 renderTimingChart('chart-timing-month', analyticsData.listing_timing.by_month, 'Månad');
+            }
+
+            // 12. Supply trend – car count per model over time
+            if (analyticsData.supply_trend && Object.keys(analyticsData.supply_trend).length > 0) {
+                const supplyDatasets = [];
+                for (const [model, data] of Object.entries(analyticsData.supply_trend)) {
+                    const color = modelColors[model] || '#a78bfa';
+                    supplyDatasets.push({
+                        label: model,
+                        data: data.counts,
+                        borderColor: color,
+                        backgroundColor: color + '22',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        fill: true,
+                    });
+                }
+                const firstSupply = Object.values(analyticsData.supply_trend)[0];
+                new Chart(document.getElementById('chart-supply-trend').getContext('2d'), {
+                    type: 'line',
+                    data: { labels: firstSupply.dates, datasets: supplyDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return `${ctx.dataset.label}: ${ctx.parsed.y} annonser`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Antal annonser' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 14. Price by model year – grouped bar chart
+            if (analyticsData.averages && Object.keys(analyticsData.averages).length > 0) {
+                // Collect all unique years across models
+                const allYearsSet = new Set();
+                for (const data of Object.values(analyticsData.averages)) {
+                    data.years.forEach(y => allYearsSet.add(y));
+                }
+                const allYearsSorted = [...allYearsSet].sort();
+
+                const pbyDatasets = [];
+                for (const [model, data] of Object.entries(analyticsData.averages)) {
+                    const color = modelColors[model] || '#a78bfa';
+                    // Map prices to the shared year axis (null for missing years)
+                    const yearPriceMap = {};
+                    data.years.forEach((y, i) => { yearPriceMap[y] = data.prices[i]; });
+                    const yearCountMap = {};
+                    data.years.forEach((y, i) => { yearCountMap[y] = data.counts[i]; });
+
+                    pbyDatasets.push({
+                        label: model,
+                        data: allYearsSorted.map(y => yearPriceMap[y] || null),
+                        backgroundColor: color + '99',
+                        borderColor: color,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        _counts: allYearsSorted.map(y => yearCountMap[y] || 0),
+                    });
+                }
+
+                new Chart(document.getElementById('chart-price-by-year').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: allYearsSorted.map(String),
+                        datasets: pbyDatasets,
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        const count = ctx.dataset._counts[ctx.dataIndex];
+                                        return `${ctx.dataset.label}: ${fmtSEK.format(ctx.parsed.y)} kr (${count} st)`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                title: { display: true, text: 'Snittpris (kr)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { callback: v => fmtSEK.format(v) }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 15. Battery range chart
+            if (analyticsData.battery_range && Object.keys(analyticsData.battery_range).length > 0) {
+                const rangeDatasets = [];
+                for (const [model, data] of Object.entries(analyticsData.battery_range)) {
+                    const color = modelColors[model] || '#a78bfa';
+                    rangeDatasets.push({
+                        label: model,
+                        data: data.years.map((yr, i) => ({ x: yr, y: data.ranges[i] })),
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        showLine: true,
+                    });
+                }
+                new Chart(document.getElementById('chart-battery-range').getContext('2d'), {
+                    type: 'scatter',
+                    data: { datasets: rangeDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#f8fafc',
+                                callbacks: {
+                                    label: function (ctx) {
+                                        const model = ctx.dataset.label;
+                                        const brData = analyticsData.battery_range[model];
+                                        const idx = ctx.dataIndex;
+                                        return [
+                                            `${model} (${ctx.parsed.x})`,
+                                            `Räckvidd: ${ctx.parsed.y} km`,
+                                            `Antal: ${brData.counts[idx]} bilar`,
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Årsmodell' },
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { callback: v => String(v) }
+                            },
+                            y: {
+                                title: { display: true, text: 'Räckvidd (km)' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        }
+                    }
+                });
             }
 
             // 10. Render Aggregated Scatter (all models) with year filters
