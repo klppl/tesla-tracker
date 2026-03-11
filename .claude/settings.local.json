@@ -19,7 +19,12 @@
       "Bash(node:*)",
       "Bash(npx:*)",
       "Bash(kill 166469:*)",
-      "WebFetch(domain:logga.geek.nu)"
+      "WebFetch(domain:logga.geek.nu)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)",
+      "Bash(git update-index:*)"
     ]
   }
 }

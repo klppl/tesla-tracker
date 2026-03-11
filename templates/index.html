@@ -933,7 +933,6 @@
             <p class="chart-subtitle">Alla Teslor i samma vy. Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen. Filtrera med knapparna nedan.</p>
             <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
             <div class="year-filters" id="model-filters"></div>
-            <div class="year-filters" id="source-filters"></div>
             <div class="year-filters" id="color-filters"></div>
             <div class="year-filters" id="year-filters"></div>
             <div class="mileage-filter" id="mileage-filter">
@@ -1693,31 +1692,6 @@
                 mileageMaxInput.addEventListener('input', updateScatterAll);
                 renderMileagePresets();
 
-                // Source filter buttons
-                const allSources = [...new Set(allPoints.map(pt => pt.source))].filter(Boolean).sort();
-                const activeSources = new Set(allSources);
-                const sourceContainer = document.getElementById('source-filters');
-
-                function renderSourceButtons() {
-                    sourceContainer.innerHTML = '';
-                    allSources.forEach(source => {
-                        const btn = document.createElement('button');
-                        btn.className = 'year-filter-btn' + (activeSources.has(source) ? ' active' : '');
-                        btn.textContent = source;
-                        btn.addEventListener('click', () => {
-                            if (activeSources.has(source)) {
-                                activeSources.delete(source);
-                            } else {
-                                activeSources.add(source);
-                            }
-                            btn.classList.toggle('active');
-                            updateScatterAll();
-                        });
-                        sourceContainer.appendChild(btn);
-                    });
-                }
-                renderSourceButtons();
-
                 // Color filter buttons (car paint color)
                 const allColors = [...new Set(allPoints.map(pt => pt.color))].filter(Boolean).sort();
                 const activeColors = new Set(allColors);
@@ -1891,7 +1865,6 @@
                     const filtered = allPoints.filter(pt =>
                         activeYears.has(pt.year) &&
                         activeModels.has(pt.model) &&
-                        activeSources.has(pt.source) &&
                         activeColors.has(pt.color) &&
                         pt.x >= minMil && pt.x <= maxMil
                     );
