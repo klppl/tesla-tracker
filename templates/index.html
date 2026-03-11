@@ -1076,6 +1076,16 @@
             };
             const defaultColor = '#a78bfa';
 
+            const paintColorMap = {
+                'Svart': '#333333',
+                'Vit': '#e8e8e8',
+                'Grå': '#888888',
+                'Silver': '#b0b0b0',
+                'Blå': '#3b82f6',
+                'Röd': '#ef4444',
+                'Okänd': '#a78bfa',
+            };
+
             const scatterPointStyle = {
                 pointRadius: 6,
                 pointHoverRadius: 11,
@@ -1709,15 +1719,6 @@
                 renderSourceButtons();
 
                 // Color filter buttons (car paint color)
-                const paintColorMap = {
-                    'Svart': '#333333',
-                    'Vit': '#e8e8e8',
-                    'Grå': '#888888',
-                    'Silver': '#b0b0b0',
-                    'Blå': '#3b82f6',
-                    'Röd': '#ef4444',
-                    'Okänd': '#a78bfa',
-                };
                 const allColors = [...new Set(allPoints.map(pt => pt.color))].filter(Boolean).sort();
                 const activeColors = new Set(allColors);
                 const colorContainer = document.getElementById('color-filters');
