@@ -818,6 +818,248 @@
                 gap: 1rem;
             }
         }
+
+        .listing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .listing-search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .listing-search {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            width: 220px;
+            transition: border-color 0.15s ease;
+        }
+
+        .listing-search:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(232, 33, 39, 0.15);
+        }
+
+        .listing-search::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .listing-count {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .listing-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .listing-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .listing-table thead th {
+            position: sticky;
+            top: 0;
+            background: rgba(24, 24, 27, 0.95);
+            backdrop-filter: blur(8px);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: color 0.15s ease;
+        }
+
+        .listing-table thead th.num {
+            text-align: right;
+        }
+
+        .listing-table thead th:hover {
+            color: var(--text-primary);
+        }
+
+        .listing-table thead th.sort-active {
+            color: var(--accent);
+        }
+
+        .listing-table thead th::after {
+            content: '';
+            margin-left: 4px;
+            font-size: 0.7rem;
+        }
+
+        .listing-table thead th.sort-active.sort-asc::after {
+            content: ' \25B2';
+        }
+
+        .listing-table thead th.sort-active.sort-desc::after {
+            content: ' \25BC';
+        }
+
+        .listing-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            transition: background 0.1s ease;
+        }
+
+        .listing-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .listing-table td {
+            padding: 9px 12px;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .listing-table td.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .listing-table td a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .listing-table td a:hover {
+            text-decoration: underline;
+        }
+
+        .listing-footer {
+            display: flex;
+            justify-content: center;
+            padding-top: 16px;
+        }
+
+        .listing-show-more {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 10px 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .listing-show-more:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: var(--accent-overlay);
+        }
+
+        @media (max-width: 768px) {
+            .listing-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .listing-search {
+                width: 100%;
+            }
+            .listing-table {
+                font-size: 0.78rem;
+            }
+            .listing-table thead th,
+            .listing-table td {
+                padding: 7px 8px;
+            }
+        }
+
+        .flow-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .flow-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            transition: background 0.15s ease;
+        }
+
+        .flow-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .flow-item a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .flow-item a:hover {
+            text-decoration: underline;
+        }
+
+        .flow-meta {
+            display: flex;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            flex-shrink: 0;
+        }
+
+        .flow-date {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            opacity: 0.7;
+            flex-shrink: 0;
+        }
+
+        .flow-empty {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .flow-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+                padding: 8px 10px;
+                font-size: 0.78rem;
+            }
+            .flow-meta {
+                gap: 8px;
+                font-size: 0.72rem;
+            }
+        }
     </style>
 </head>
 
@@ -842,6 +1084,7 @@
         <ul class="sidebar-nav">
             <li><a href="#section-start"><span class="nav-icon">&#9889;</span> Start</a></li>
             <li><a href="#section-scatter"><span class="nav-icon">&#9733;</span> Fynd-radar</a></li>
+            <li><a href="#section-listing"><span class="nav-icon">&#9776;</span> Alla bilar</a></li>
             <li><a href="#section-models"><span class="nav-icon">&#9881;</span> Per modell</a>
                 <ul class="nav-sub" id="sidebar-models"></ul>
             </li>
@@ -849,6 +1092,7 @@
             <li><a href="#section-equipment"><span class="nav-icon">&#9670;</span> Utrustning & Färg</a></li>
             <li><a href="#section-deep"><span class="nav-icon">&#9679;</span> Djupanalys</a></li>
             <li><a href="#section-daily"><span class="nav-icon">&#9650;</span> Nya annonser</a></li>
+            <li><a href="#section-flow"><span class="nav-icon">&#8644;</span> Bilflöde</a></li>
         </ul>
     </nav>
 
@@ -877,6 +1121,10 @@
                         <div class="hero-stat">
                             <span class="hero-stat-value accent">{{ "{:,}".format(qs.avg_price).replace(",", " ") }} kr</span>
                             <span class="hero-stat-label">Snittpris</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-value accent">{{ "{:,}".format(qs.median_price).replace(",", " ") }} kr</span>
+                            <span class="hero-stat-label">Medianpris</span>
                         </div>
                         <div class="hero-stat">
                             <span class="hero-stat-value">{{ "{:,}".format(qs.min_price).replace(",", " ") }} kr</span>
@@ -947,6 +1195,40 @@
             </div>
             <div class="chart-container scatter-chart">
                 <canvas id="chart-scatter-all"></canvas>
+            </div>
+        </div>
+
+        <!-- Billistning -->
+        <div id="section-listing" class="chart-card">
+            <div class="listing-header">
+                <div>
+                    <h2 class="chart-title">Alla bilar</h2>
+                    <p class="chart-subtitle">Synkad med filtren ovan. Klicka på kolumnrubriker för att sortera.</p>
+                </div>
+                <div class="listing-search-wrap">
+                    <input type="text" id="listing-search" class="listing-search" placeholder="Sök modell, version, färg...">
+                    <span id="listing-count" class="listing-count"></span>
+                </div>
+            </div>
+            <div class="listing-table-wrap">
+                <table class="listing-table" id="listing-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="model">Modell</th>
+                            <th data-sort="version">Version</th>
+                            <th data-sort="year" class="num">År</th>
+                            <th data-sort="y" class="num sort-active sort-asc">Pris</th>
+                            <th data-sort="x" class="num">Miltal</th>
+                            <th data-sort="kr_mil" class="num">Kr/mil</th>
+                            <th data-sort="color">Färg</th>
+                            <th data-sort="source">Källa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listing-body"></tbody>
+                </table>
+            </div>
+            <div class="listing-footer">
+                <button id="listing-show-more" class="listing-show-more" style="display:none;">Visa fler</button>
             </div>
         </div>
 
@@ -1034,6 +1316,21 @@
             <p class="chart-subtitle">Antal nyligen listade Teslor per datum</p>
             <div class="chart-container">
                 <canvas id="chart-daily-additions"></canvas>
+            </div>
+        </div>
+
+        <!-- Bilflöde – nya och borttagna -->
+        <h2 id="section-flow" class="section-title">Bilflöde (senaste 7 dagarna)</h2>
+        <div class="charts-row">
+            <div class="chart-card">
+                <h2 class="chart-title" style="color:#34d399;">Nya annonser</h2>
+                <p class="chart-subtitle">Bilar som lagts upp de senaste 7 dagarna</p>
+                <div id="flow-added" class="flow-list"></div>
+            </div>
+            <div class="chart-card">
+                <h2 class="chart-title" style="color:#e82127;">Borttagna / sålda</h2>
+                <p class="chart-subtitle">Bilar som försvunnit de senaste 7 dagarna</p>
+                <div id="flow-removed" class="flow-list"></div>
             </div>
         </div>
 
@@ -1859,6 +2156,106 @@
                     }
                 });
 
+                // --- Listing table logic ---
+                const listingBody = document.getElementById('listing-body');
+                const listingSearch = document.getElementById('listing-search');
+                const listingCount = document.getElementById('listing-count');
+                const showMoreBtn = document.getElementById('listing-show-more');
+                const PAGE_SIZE = 50;
+                let listingFiltered = [];
+                let listingVisible = PAGE_SIZE;
+                let listingSortKey = 'y';
+                let listingSortAsc = true;
+
+                function getFilteredPoints() {
+                    const minMil = parseFloat(mileageMinInput.value) || 0;
+                    const maxMil = parseFloat(mileageMaxInput.value) || Infinity;
+                    const searchTerm = (listingSearch ? listingSearch.value : '').toLowerCase();
+                    return allPoints.filter(pt =>
+                        activeYears.has(pt.year) &&
+                        activeModels.has(pt.model) &&
+                        activeColors.has(pt.color) &&
+                        pt.x >= minMil && pt.x <= maxMil &&
+                        (searchTerm === '' ||
+                            (pt.model && pt.model.toLowerCase().includes(searchTerm)) ||
+                            (pt.version && pt.version.toLowerCase().includes(searchTerm)) ||
+                            (pt.color && pt.color.toLowerCase().includes(searchTerm)) ||
+                            (pt.source && pt.source.toLowerCase().includes(searchTerm))
+                        )
+                    );
+                }
+
+                function sortPoints(pts) {
+                    const key = listingSortKey;
+                    const dir = listingSortAsc ? 1 : -1;
+                    return pts.slice().sort((a, b) => {
+                        let va = a[key], vb = b[key];
+                        if (va == null) return 1;
+                        if (vb == null) return -1;
+                        if (typeof va === 'string') return dir * va.localeCompare(vb, 'sv');
+                        return dir * (va - vb);
+                    });
+                }
+
+                function renderListing() {
+                    listingFiltered = sortPoints(getFilteredPoints());
+                    const showing = listingFiltered.slice(0, listingVisible);
+                    listingCount.textContent = `${listingFiltered.length} bilar`;
+
+                    listingBody.innerHTML = showing.map(pt => {
+                        const price = pt.y ? fmtSEK.format(pt.y) + ' kr' : '–';
+                        const mil = pt.x != null ? fmtSEK.format(pt.x) + ' mil' : '–';
+                        const krMil = pt.kr_mil ? fmtSEK.format(pt.kr_mil) : '–';
+                        const link = pt.url
+                            ? `<a href="${pt.url}" target="_blank" rel="noopener">${pt.model || ''}</a>`
+                            : (pt.model || '');
+                        return `<tr>
+                            <td>${link}</td>
+                            <td>${pt.version || '–'}</td>
+                            <td class="num">${pt.year || '–'}</td>
+                            <td class="num">${price}</td>
+                            <td class="num">${mil}</td>
+                            <td class="num">${krMil}</td>
+                            <td>${pt.color || '–'}</td>
+                            <td>${pt.source || '–'}</td>
+                        </tr>`;
+                    }).join('');
+
+                    showMoreBtn.style.display = listingVisible < listingFiltered.length ? '' : 'none';
+                    showMoreBtn.textContent = `Visa fler (${Math.min(PAGE_SIZE, listingFiltered.length - listingVisible)} till av ${listingFiltered.length - listingVisible})`;
+                }
+
+                // Sort header clicks
+                document.querySelectorAll('#listing-table thead th[data-sort]').forEach(th => {
+                    th.addEventListener('click', () => {
+                        const key = th.dataset.sort;
+                        if (listingSortKey === key) {
+                            listingSortAsc = !listingSortAsc;
+                        } else {
+                            listingSortKey = key;
+                            listingSortAsc = th.classList.contains('num') ? true : true;
+                        }
+                        document.querySelectorAll('#listing-table thead th').forEach(h => {
+                            h.classList.remove('sort-active', 'sort-asc', 'sort-desc');
+                        });
+                        th.classList.add('sort-active', listingSortAsc ? 'sort-asc' : 'sort-desc');
+                        listingVisible = PAGE_SIZE;
+                        renderListing();
+                    });
+                });
+
+                showMoreBtn.addEventListener('click', () => {
+                    listingVisible += PAGE_SIZE;
+                    renderListing();
+                });
+
+                if (listingSearch) {
+                    listingSearch.addEventListener('input', () => {
+                        listingVisible = PAGE_SIZE;
+                        renderListing();
+                    });
+                }
+
                 function updateScatterAll() {
                     const minMil = parseFloat(mileageMinInput.value) || 0;
                     const maxMil = parseFloat(mileageMaxInput.value) || Infinity;
@@ -1871,9 +2268,14 @@
                     scatterAllChart.data.datasets = buildDatasets(filtered);
 
                     scatterAllChart.update();
+
+                    // Sync listing table
+                    listingVisible = PAGE_SIZE;
+                    renderListing();
                 }
 
                 renderFilterButtons();
+                renderListing();
             }
 
             // 6. Render Model Specific Charts
@@ -2228,6 +2630,39 @@
                 });
 
             }
+
+            // 11. Car flow – recently added and removed
+            function renderFlowList(containerId, items, emptyText) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                if (!items || items.length === 0) {
+                    container.innerHTML = `<div class="flow-empty">${emptyText}</div>`;
+                    return;
+                }
+                container.innerHTML = items.map(car => {
+                    const price = car.price ? fmtSEK.format(car.price) + ' kr' : 'Pris saknas';
+                    const mileage = car.mileage_mil ? fmtSEK.format(car.mileage_mil) + ' mil' : '';
+                    const label = `${car.model} ${car.version || ''}`.trim();
+                    const linkTag = car.url
+                        ? `<a href="${car.url}" target="_blank" rel="noopener">${label}</a>`
+                        : `<span style="font-weight:600;">${label}</span>`;
+                    return `<div class="flow-item">
+                        ${linkTag}
+                        <div class="flow-meta">
+                            <span>${price}</span>
+                            ${mileage ? `<span>${mileage}</span>` : ''}
+                            ${car.year ? `<span>${car.year}</span>` : ''}
+                        </div>
+                        <span class="flow-date">${car.date || ''}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            if (analyticsData.car_flow) {
+                renderFlowList('flow-added', analyticsData.car_flow.added, 'Inga nya bilar de senaste 7 dagarna');
+                renderFlowList('flow-removed', analyticsData.car_flow.removed, 'Inga borttagna bilar de senaste 7 dagarna');
+            }
+
             // Scroll-spy: highlight active sidebar link (re-queries DOM each time for dynamic model links)
             function updateActiveSidebar() {
                 const allLinks = document.querySelectorAll('.sidebar-nav a');

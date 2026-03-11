@@ -31,6 +31,7 @@ def get_analytics_data():
         "depreciation": {},
         "listing_timing": {"by_weekday": [], "by_month": []},
         "price_prediction": {},
+        "car_flow": {"added": [], "removed": []},
     }
 
     # Summary stats
@@ -72,8 +73,22 @@ def get_analytics_data():
     ''')
     row = cursor.fetchone()
     if row and row["avg_price"]:
+        # Compute median price separately
+        cursor.execute('''
+            SELECT price FROM cars
+            WHERE status = 'active' AND price IS NOT NULL
+            ORDER BY price
+        ''')
+        prices = [r["price"] for r in cursor.fetchall()]
+        n = len(prices)
+        if n > 0:
+            median_price = (prices[n // 2] + prices[(n - 1) // 2]) // 2
+        else:
+            median_price = int(row["avg_price"])
+
         analytics["summary"]["quick_stats"] = {
             "avg_price": int(row["avg_price"]),
+            "median_price": median_price,
             "min_price": int(row["min_price"]),
             "max_price": int(row["max_price"]),
             "avg_mileage": int(row["avg_mileage_mil"]),
@@ -349,6 +364,54 @@ def get_analytics_data():
                 "direction": "up" if slope > 0 else "down",
                 "data_points": n,
             }
+    except Exception:
+        pass
+
+    # 11. Car flow – recently added and removed cars (last 7 days)
+    try:
+        cursor.execute('''
+            SELECT model, version, year, price, mileage / 10.0 as mileage_mil,
+                   url, source, color, substr(created_at, 1, 10) as added_date
+            FROM cars
+            WHERE created_at IS NOT NULL
+              AND substr(created_at, 1, 10) >= date('now', '-7 days')
+            ORDER BY created_at DESC
+            LIMIT 50
+        ''')
+        for row in cursor.fetchall():
+            analytics["car_flow"]["added"].append({
+                "model": row["model"],
+                "version": row["version"],
+                "year": row["year"],
+                "price": row["price"],
+                "mileage_mil": round(row["mileage_mil"], 1) if row["mileage_mil"] else None,
+                "url": row["url"],
+                "source": row["source"],
+                "color": row["color"],
+                "date": row["added_date"],
+            })
+
+        cursor.execute('''
+            SELECT model, version, year, price, mileage / 10.0 as mileage_mil,
+                   url, source, color, substr(removed_at, 1, 10) as removed_date
+            FROM cars
+            WHERE status = 'removed' AND removed_at IS NOT NULL
+              AND substr(removed_at, 1, 10) >= date('now', '-7 days')
+            ORDER BY removed_at DESC
+            LIMIT 50
+        ''')
+        for row in cursor.fetchall():
+            analytics["car_flow"]["removed"].append({
+                "model": row["model"],
+                "version": row["version"],
+                "year": row["year"],
+                "price": row["price"],
+                "mileage_mil": round(row["mileage_mil"], 1) if row["mileage_mil"] else None,
+                "url": row["url"],
+                "source": row["source"],
+                "color": row["color"],
+                "date": row["removed_date"],
+            })
     except Exception:
         pass
 
