@@ -934,6 +934,7 @@
             <p class="chart-subtitle" style="margin-top: -12px;"><span style="color: #ffd700; font-weight: 600;">&#9679; Bästa deal?</span> = Bilen med lägst pris jämfört med förväntat marknadsvärde, baserat på linjär regression (pris ~ årsmodell + miltal).</p>
             <div class="year-filters" id="model-filters"></div>
             <div class="year-filters" id="source-filters"></div>
+            <div class="year-filters" id="color-filters"></div>
             <div class="year-filters" id="year-filters"></div>
             <div class="mileage-filter" id="mileage-filter">
                 <label class="mileage-filter-label">Miltal:</label>
@@ -1707,6 +1708,50 @@
                 }
                 renderSourceButtons();
 
+                // Color filter buttons (car paint color)
+                const paintColorMap = {
+                    'Svart': '#333333',
+                    'Vit': '#e8e8e8',
+                    'Grå': '#888888',
+                    'Silver': '#b0b0b0',
+                    'Blå': '#3b82f6',
+                    'Röd': '#ef4444',
+                    'Okänd': '#a78bfa',
+                };
+                const allColors = [...new Set(allPoints.map(pt => pt.color))].filter(Boolean).sort();
+                const activeColors = new Set(allColors);
+                const colorContainer = document.getElementById('color-filters');
+
+                function renderColorButtons() {
+                    colorContainer.innerHTML = '';
+                    allColors.forEach(color => {
+                        const c = paintColorMap[color] || '#a78bfa';
+                        const btn = document.createElement('button');
+                        btn.className = 'model-filter-btn' + (activeColors.has(color) ? ' active' : '');
+                        btn.textContent = color;
+                        if (activeColors.has(color)) {
+                            btn.style.borderColor = c;
+                            btn.style.background = c + '25';
+                            btn.style.color = '#fff';
+                        } else {
+                            btn.style.borderColor = '';
+                            btn.style.background = '';
+                            btn.style.color = '';
+                        }
+                        btn.addEventListener('click', () => {
+                            if (activeColors.has(color)) {
+                                activeColors.delete(color);
+                            } else {
+                                activeColors.add(color);
+                            }
+                            renderColorButtons();
+                            updateScatterAll();
+                        });
+                        colorContainer.appendChild(btn);
+                    });
+                }
+                renderColorButtons();
+
                 // Model filter buttons (colored like scatter dots)
                 const allModels = [...new Set(allPoints.map(pt => pt.model))].filter(Boolean).sort();
                 const activeModels = new Set(allModels);
@@ -1818,6 +1863,7 @@
                                             `Pris: ${price} kr`,
                                             `Miltal: ${mil} mil`,
                                         ];
+                                        if (pt.color) lines.push(`Färg: ${pt.color}`);
                                         if (pt.kr_mil) lines.push(`Kr/mil: ${fmtSEK.format(pt.kr_mil)}`);
                                         lines.push(`Klicka för att öppna annonsen!`);
                                         return lines;
@@ -1845,6 +1891,7 @@
                         activeYears.has(pt.year) &&
                         activeModels.has(pt.model) &&
                         activeSources.has(pt.source) &&
+                        activeColors.has(pt.color) &&
                         pt.x >= minMil && pt.x <= maxMil
                     );
                     scatterAllChart.data.datasets = buildDatasets(filtered);
@@ -1909,6 +1956,7 @@
                     <h3 class="chart-title">Fynd-radar (Pris vs Miltal)</h3>
                     <p class="chart-subtitle">Nedre vänstra hörnet = Bästa köpet! Klicka på punkter för att öppna annonsen.</p>
                     <div class="year-filters" id="variant-filters-${scatterId}"></div>
+                    <div class="year-filters" id="color-filters-${scatterId}"></div>
                     <div class="year-filters" id="year-filters-${scatterId}"></div>
                     <div class="year-filters" id="mileage-filters-${scatterId}"></div>
                     <div class="chart-container scatter-chart">
@@ -2105,6 +2153,41 @@
                 }
                 renderVariantButtons();
 
+                // Color filter buttons for per-model scatter
+                const modelColors2 = [...new Set(scatterData.map(pt => pt.color))].filter(Boolean).sort();
+                const activeModelColors = new Set(modelColors2);
+                const modelColorContainer = document.getElementById(`color-filters-${scatterId}`);
+
+                function renderModelColorButtons() {
+                    modelColorContainer.innerHTML = '';
+                    modelColors2.forEach(color => {
+                        const c = paintColorMap[color] || '#a78bfa';
+                        const btn = document.createElement('button');
+                        btn.className = 'model-filter-btn' + (activeModelColors.has(color) ? ' active' : '');
+                        btn.textContent = color;
+                        if (activeModelColors.has(color)) {
+                            btn.style.borderColor = c;
+                            btn.style.background = c + '25';
+                            btn.style.color = '#fff';
+                        } else {
+                            btn.style.borderColor = '';
+                            btn.style.background = '';
+                            btn.style.color = '';
+                        }
+                        btn.addEventListener('click', () => {
+                            if (activeModelColors.has(color)) {
+                                activeModelColors.delete(color);
+                            } else {
+                                activeModelColors.add(color);
+                            }
+                            renderModelColorButtons();
+                            updateModelScatter();
+                        });
+                        modelColorContainer.appendChild(btn);
+                    });
+                }
+                renderModelColorButtons();
+
                 function updateModelScatter() {
                     // Build set of active raw versions from active normalized variants
                     const activeRawVersions = new Set();
@@ -2112,6 +2195,7 @@
                     const filtered = scatterData.filter(pt =>
                         activeModelYears.has(pt.year) &&
                         activeRawVersions.has(pt.version) &&
+                        activeModelColors.has(pt.color) &&
                         pt.x <= activeModelMileageMax
                     );
                     modelScatterChart.data.datasets = buildModelScatterDatasets(filtered);
@@ -2148,6 +2232,7 @@
                                             `Pris: ${price} kr`,
                                             `Miltal: ${mil} mil`,
                                         ];
+                                        if (pt.color) lines.push(`Färg: ${pt.color}`);
                                         if (pt.kr_mil) lines.push(`Kr/mil: ${fmtSEK.format(pt.kr_mil)}`);
                                         lines.push(`Klicka för att öppna annonsen!`);
                                         return lines;

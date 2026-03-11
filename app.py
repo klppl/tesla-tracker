@@ -106,7 +106,7 @@ def get_analytics_data():
 
     # 2. Scatter Data (active cars only) - Price vs Mileage in 'mil'
     cursor.execute('''
-        SELECT model, version, year, price, mileage / 10.0 as mileage_mil, url, source
+        SELECT model, version, year, price, mileage / 10.0 as mileage_mil, url, source, color
         FROM cars
         WHERE price IS NOT NULL AND mileage IS NOT NULL AND status = 'active'
     ''')
@@ -125,6 +125,7 @@ def get_analytics_data():
             "url": row['url'],
             "kr_mil": kr_per_mil,
             "source": row['source'],
+            "color": row['color'] or "Okänd",
         }
         analytics["scatter"][model].append(point)
         analytics["scatter_all"].append(point)

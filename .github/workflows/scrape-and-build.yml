@@ -57,6 +57,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tesla_cars.db public/
+          git add -f tesla_cars.db public/
           git diff --staged --quiet || git commit -m "Daglig uppdatering: scrape + static build"
           git push
