@@ -1,0 +1,84 @@
+=== 2026-03-11 06:57 UTC ===
+
+--- Scraper ---
+Initializing database...
+
+[carla.se] Fetching Tesla listings...
+[carla.se] Fetched 147 cars.
+[carla.se] Added 6 new, updated 2 prices.
+
+[wayke.se] Fetching Tesla listings...
+[wayke.se] Fetched 694 cars.
+[wayke.se] Added 19 new, updated 8 prices.
+
+Marked 15 cars as removed/sold.
+Price snapshot saved.
+
+--- Static build ---
+Statisk sida genererad: /home/runner/work/tesla-tracker/tesla-tracker/public/index.html
+  Storlek: 464,275 bytes
+
+
+=== 2026-03-10 06:54 UTC ===
+
+--- Scraper ---
+Initializing database...
+
+[carla.se] Fetching Tesla listings...
+[carla.se] Fetched 143 cars.
+[carla.se] Added 4 new, updated 2 prices.
+
+[wayke.se] Fetching Tesla listings...
+[wayke.se] Fetched 688 cars.
+[wayke.se] Added 16 new, updated 14 prices.
+
+Marked 39 cars as removed/sold.
+Price snapshot saved.
+
+--- Static build ---
+Statisk sida genererad: /home/runner/work/tesla-tracker/tesla-tracker/public/index.html
+  Storlek: 459,652 bytes
+
+
+=== 2026-03-09 07:05 UTC ===
+
+--- Scraper ---
+Initializing database...
+
+[carla.se] Fetching Tesla listings...
+[carla.se] Fetched 149 cars.
+[carla.se] Added 0 new, updated 0 prices.
+
+[wayke.se] Fetching Tesla listings...
+[wayke.se] Fetched 701 cars.
+[wayke.se] Added 0 new, updated 0 prices.
+
+Marked 0 cars as removed/sold.
+Price snapshot saved.
+
+--- Static build ---
+Statisk sida genererad: /home/runner/work/tesla-tracker/tesla-tracker/public/index.html
+  Storlek: 467,716 bytes
+
+
+=== 2026-03-08 06:46 UTC ===
+
+--- Scraper ---
+Initializing database...
+
+[carla.se] Fetching Tesla listings...
+[carla.se] Fetched 150 cars.
+[carla.se] Added 0 new, updated 0 prices.
+
+[wayke.se] Fetching Tesla listings...
+[wayke.se] Fetched 709 cars.
+[wayke.se] Added 0 new, updated 1 prices.
+
+Marked 3 cars as removed/sold.
+Price snapshot saved.
+
+--- Static build ---
+Statisk sida genererad: /home/runner/work/tesla-tracker/tesla-tracker/public/index.html
+  Storlek: 472,906 → 427,880 bytes (9.5% mindre)
+
+
