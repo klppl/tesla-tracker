@@ -50,9 +50,22 @@ class WaykeScraper(BaseScraper):
         documents = all_docs
 
         cars = []
+        skipped = 0
         for doc in documents:
             car_id = doc.get("_id")
             if not car_id:
+                continue
+
+            # Skip leasing listings – they have no real purchase price
+            title = doc.get("title", "").lower()
+            if "leasing" in title:
+                skipped += 1
+                continue
+
+            # Skip listings with no price or zero price
+            price = doc.get("price")
+            if not price or price <= 0:
+                skipped += 1
                 continue
 
             # Extract image URL
@@ -99,4 +112,6 @@ class WaykeScraper(BaseScraper):
                 "source": self.name,
             })
 
+        if skipped:
+            print(f"  Wayke: skipped {skipped} leasing/no-price listings")
         return cars
