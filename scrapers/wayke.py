@@ -56,9 +56,8 @@ class WaykeScraper(BaseScraper):
             if not car_id:
                 continue
 
-            # Skip leasing listings – they have no real purchase price
-            title = doc.get("title", "").lower()
-            if "leasing" in title:
+            # Skip non-cash listings (leasing, subscription, etc.)
+            if doc.get("primaryPriceType") != "Cash":
                 skipped += 1
                 continue
 
