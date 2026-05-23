@@ -13,7 +13,7 @@ All UI text is in Swedish.
 ```bash
 # Setup
 uv venv && source .venv/bin/activate
-uv pip install flask requests
+uv pip install -r requirements.txt
 
 # Run scraper (fetches all Tesla listings, saves to tesla_cars.db)
 uv run scraper.py

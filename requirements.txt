@@ -1,0 +1,4 @@
+# Runtime dependencies. Pinned so the daily CI build is reproducible and a
+# breaking upstream release can't silently fail the scrape/build.
+Flask==3.1.0
+requests==2.32.3
