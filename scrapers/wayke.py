@@ -33,12 +33,23 @@ class WaykeScraper(BaseScraper):
         response.raise_for_status()
 
     def fetch(self) -> list[dict]:
+        self.last_fetch_complete = True
         page_size = 100
         offset = 0
         all_docs = []
 
         while True:
-            docs, total = self._fetch_page(offset, page_size)
+            try:
+                docs, total = self._fetch_page(offset, page_size)
+            except Exception as e:
+                if offset == 0:
+                    raise  # Total failure — let the orchestrator skip this source.
+                # Partial failure: keep what we have, but flag as incomplete so
+                # the orchestrator does not mark the rest as removed/sold.
+                print(f"  Pagination failed at offset {offset}: {e} "
+                      f"— keeping {len(all_docs)} docs, marking incomplete.")
+                self.last_fetch_complete = False
+                break
             if not docs:
                 break
             all_docs.extend(docs)

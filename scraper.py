@@ -51,19 +51,27 @@ def save_cars_to_db(cars):
     return new_cars_added, updated_cars
 
 
-def mark_removed_cars(seen_ids):
+def mark_removed_cars(source, seen_ids):
+    """Reconcile active/removed status for a single source.
+
+    Scoped to `source` so a failed or incomplete scrape of one source never
+    flags another source's cars as removed. Cars from this source that are
+    active but no longer seen are marked removed; previously-removed cars
+    that reappear are reactivated.
+    """
     conn = get_connection()
     cursor = conn.cursor()
-    placeholders = ','.join('?' for _ in seen_ids)
+    seen = list(seen_ids)
+    placeholders = ','.join('?' for _ in seen)
     cursor.execute(f'''
         UPDATE cars SET status = 'removed', removed_at = date('now')
-        WHERE status = 'active' AND id NOT IN ({placeholders})
-    ''', list(seen_ids))
+        WHERE status = 'active' AND source = ? AND id NOT IN ({placeholders})
+    ''', [source] + seen)
     removed = cursor.rowcount
     cursor.execute(f'''
         UPDATE cars SET status = 'active', removed_at = NULL
-        WHERE status = 'removed' AND id IN ({placeholders})
-    ''', list(seen_ids))
+        WHERE status = 'removed' AND source = ? AND id IN ({placeholders})
+    ''', [source] + seen)
     conn.commit()
     conn.close()
     return removed
@@ -101,28 +109,31 @@ def main():
     print("Initializing database...")
     init_db()
 
-    all_seen_ids = set()
-
     for scraper in ALL_SCRAPERS:
         print(f"\n[{scraper.name}] Fetching Tesla listings...")
         try:
             cars = scraper.fetch()
-            print(f"[{scraper.name}] Fetched {len(cars)} cars.")
-
-            new_added, updated = save_cars_to_db(cars)
-            print(f"[{scraper.name}] Added {new_added} new, updated {updated} prices.")
-
-            for car in cars:
-                all_seen_ids.add(car["id"])
         except Exception as e:
-            print(f"[{scraper.name}] Error: {e}")
+            # Source failed entirely — skip reconciliation so we never flag
+            # its (or any other source's) cars as removed/sold by mistake.
+            print(f"[{scraper.name}] Error: {e} — skipping removal reconciliation.")
+            continue
 
-    if all_seen_ids:
-        removed = mark_removed_cars(all_seen_ids)
-        print(f"\nMarked {removed} cars as removed/sold.")
+        print(f"[{scraper.name}] Fetched {len(cars)} cars.")
+        new_added, updated = save_cars_to_db(cars)
+        print(f"[{scraper.name}] Added {new_added} new, updated {updated} prices.")
+
+        seen_ids = {car["id"] for car in cars}
+        if not seen_ids:
+            print(f"[{scraper.name}] No cars returned — skipping removal reconciliation.")
+        elif not scraper.last_fetch_complete:
+            print(f"[{scraper.name}] Incomplete fetch — refreshed prices but skipping removal reconciliation.")
+        else:
+            removed = mark_removed_cars(scraper.name, seen_ids)
+            print(f"[{scraper.name}] Marked {removed} cars as removed/sold.")
 
     save_price_snapshot()
-    print("Price snapshot saved.")
+    print("\nPrice snapshot saved.")
 
 
 if __name__ == "__main__":

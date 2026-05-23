@@ -23,5 +23,10 @@ class BaseScraper:
 
     name: str = "base"
 
+    # Set to False by fetch() when pagination ends early due to an error,
+    # so the orchestrator knows the result set may be incomplete and skips
+    # removal reconciliation for this source (avoids false "sold" flags).
+    last_fetch_complete: bool = True
+
     def fetch(self) -> list[dict]:
         raise NotImplementedError
