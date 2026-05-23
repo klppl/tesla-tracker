@@ -29,7 +29,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```bash
 uv venv
 source .venv/bin/activate
-uv pip install flask requests
+uv pip install -r requirements.txt
 ```
 
 ### 3. Kör scrapern
