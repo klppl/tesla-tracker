@@ -147,11 +147,12 @@ def get_analytics_data():
         analytics["scatter"][model].append(point)
         analytics["scatter_all"].append(point)
         
-    # 3. Daily Additions
+    # 3. Daily Additions — when the tracker first saw each listing (first_seen),
+    # not when the seller published it (created_at).
     cursor.execute('''
-        SELECT substr(created_at, 1, 10) as fetch_date, COUNT(*) as count
+        SELECT substr(first_seen, 1, 10) as fetch_date, COUNT(*) as count
         FROM cars
-        WHERE created_at IS NOT NULL
+        WHERE first_seen IS NOT NULL
         GROUP BY fetch_date
         ORDER BY fetch_date
     ''')
@@ -293,7 +294,9 @@ def get_analytics_data():
     except Exception:
         pass
 
-    # 9. Listing timing – weekday and month distribution
+    # 9. Listing timing – weekday and month distribution. Intentionally uses
+    # created_at (the seller's publish date), since this measures when sellers
+    # list cars, not when the tracker discovered them.
     weekday_names = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
     try:
@@ -376,11 +379,11 @@ def get_analytics_data():
     try:
         cursor.execute('''
             SELECT model, version, year, price, mileage / 10.0 as mileage_mil,
-                   url, source, color, substr(created_at, 1, 10) as added_date
+                   url, source, color, substr(first_seen, 1, 10) as added_date
             FROM cars
-            WHERE created_at IS NOT NULL
-              AND substr(created_at, 1, 10) >= date('now', '-7 days')
-            ORDER BY created_at DESC
+            WHERE first_seen IS NOT NULL
+              AND substr(first_seen, 1, 10) >= date('now', '-7 days')
+            ORDER BY first_seen DESC
             LIMIT 50
         ''')
         for row in cursor.fetchall():

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from database import get_connection, init_db
 from scrapers import ALL_SCRAPERS
 
@@ -9,6 +9,9 @@ def save_cars_to_db(cars):
 
     new_cars_added = 0
     updated_cars = 0
+    # When the tracker first sees a listing, in UTC to stay consistent with
+    # date('now') (UTC) used elsewhere for removal/window comparisons.
+    now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
     for car in cars:
         car_id = car["id"]
@@ -21,10 +24,11 @@ def save_cars_to_db(cars):
             try:
                 cursor.execute('''
                     INSERT INTO cars (id, model, version, year, price, mileage, created_at,
-                        features, image_url, url, color, towbar, winter_wheels, battery_range, source)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        first_seen, features, image_url, url, color, towbar, winter_wheels,
+                        battery_range, source)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (car_id, car["model"], car["version"], car["year"], car["price"],
-                      car["mileage"], car["created_at"], car["features"], car["image_url"],
+                      car["mileage"], car["created_at"], now_utc, car["features"], car["image_url"],
                       car["url"], car["color"], car["towbar"], car["winter_wheels"],
                       car["battery_range"], source))
                 new_cars_added += 1

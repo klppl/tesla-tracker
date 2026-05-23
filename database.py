@@ -20,6 +20,7 @@ def init_db():
             price INTEGER,
             mileage INTEGER,
             created_at TEXT,
+            first_seen TEXT,
             scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             features TEXT,
             image_url TEXT,
@@ -50,12 +51,22 @@ def init_db():
         ('status', 'TEXT', "'active'"), ('removed_at', 'TEXT', 'NULL'),
         ('color', 'TEXT', 'NULL'), ('towbar', 'TEXT', 'NULL'),
         ('winter_wheels', 'TEXT', 'NULL'), ('battery_range', 'INTEGER', 'NULL'),
+        ('first_seen', 'TEXT', 'NULL'),
     ]
     for col, coltype, default in new_cols:
         try:
             cursor.execute(f"ALTER TABLE cars ADD COLUMN {col} {coltype} DEFAULT {default}")
         except sqlite3.OperationalError:
             pass
+
+    # Backfill first_seen for rows predating the column. We never observed the
+    # true first-seen time for these, so approximate with the listing's publish
+    # date (created_at), falling back to the last scrape time. Idempotent: new
+    # rows get first_seen at insert, so this only ever touches legacy rows once.
+    cursor.execute('''
+        UPDATE cars SET first_seen = COALESCE(created_at, scraped_at)
+        WHERE first_seen IS NULL
+    ''')
 
     conn.commit()
     conn.close()
