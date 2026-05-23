@@ -4,6 +4,7 @@ from scrapers.base import BaseScraper
 
 REQUEST_DELAY = 1.5  # seconds between pages
 MAX_RETRIES = 3
+REQUEST_TIMEOUT = (10, 30)  # (connect, read) seconds — never hang indefinitely
 
 SEARCH_URL = "https://www.wayke.se/api/search/vehicles"
 
@@ -18,10 +19,19 @@ class WaykeScraper(BaseScraper):
             "offset": offset,
         }
         for attempt in range(MAX_RETRIES):
-            response = requests.get(SEARCH_URL, params=params, headers={
-                "Accept": "application/json",
-                "User-Agent": "Mozilla/5.0 (compatible; TeslaTracker/1.0)",
-            })
+            try:
+                response = requests.get(SEARCH_URL, params=params, timeout=REQUEST_TIMEOUT, headers={
+                    "Accept": "application/json",
+                    "User-Agent": "Mozilla/5.0 (compatible; TeslaTracker/1.0)",
+                })
+            except requests.exceptions.RequestException as e:
+                # Timeout / connection error: back off and retry, then give up.
+                if attempt == MAX_RETRIES - 1:
+                    raise
+                wait = (attempt + 1) * 5
+                print(f"  Request failed ({e}), retrying in {wait}s...")
+                time.sleep(wait)
+                continue
             if response.status_code == 429:
                 wait = (attempt + 1) * 5
                 print(f"  Rate limited, waiting {wait}s...")

@@ -4,6 +4,7 @@ from scrapers.base import BaseScraper
 
 REQUEST_DELAY = 1.5  # seconds between pages
 MAX_RETRIES = 3
+REQUEST_TIMEOUT = (10, 30)  # (connect, read) seconds — never hang indefinitely
 
 API_URL = "https://izs3uhkhl4-dsn.algolia.net/1/indexes/*/queries"
 API_PARAMS = {
@@ -32,7 +33,17 @@ class CarlaScraper(BaseScraper):
             }]
         }
         for attempt in range(MAX_RETRIES):
-            response = requests.post(API_URL, params=API_PARAMS, json=payload)
+            try:
+                response = requests.post(API_URL, params=API_PARAMS, json=payload,
+                                         timeout=REQUEST_TIMEOUT)
+            except requests.exceptions.RequestException as e:
+                # Timeout / connection error: back off and retry, then give up.
+                if attempt == MAX_RETRIES - 1:
+                    raise
+                wait = (attempt + 1) * 5
+                print(f"  Request failed ({e}), retrying in {wait}s...")
+                time.sleep(wait)
+                continue
             if response.status_code == 429:
                 wait = (attempt + 1) * 5
                 print(f"  Rate limited, waiting {wait}s...")
