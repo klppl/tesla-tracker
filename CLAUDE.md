@@ -15,6 +15,9 @@ All UI text is in Swedish.
 uv venv && source .venv/bin/activate
 uv pip install -r requirements.txt
 
+# Fetch the live database (it lives on the 'data' branch, not main)
+git show origin/data:tesla_cars.db > tesla_cars.db
+
 # Run scraper (fetches all Tesla listings, saves to tesla_cars.db)
 uv run scraper.py
 
@@ -66,7 +69,23 @@ The template (`templates/index.html`) is a single-page dashboard using Chart.js.
 
 ### CI/CD
 
-`.github/workflows/scrape-and-build.yml` runs daily at 06:00 UTC: scrapes, generates static site, commits `tesla_cars.db` + `public/` back to the repo. Hosted via Cloudflare Pages pointing at `public/`.
+`.github/workflows/scrape-and-build.yml` runs daily at 06:00 UTC:
+
+1. **Restore** `tesla_cars.db` from the `data` branch (see below).
+2. **Scrape** all sources.
+3. **Verify** DB integrity (`PRAGMA integrity_check` + non-zero car count); the job aborts if the scrape produced a corrupt/empty DB, so the last good copy survives.
+4. **Generate** the static site and append a build log.
+5. **Commit** `public/` (the deployed artifact + `log.txt`) to `main`.
+6. **Persist** the DB to the `data` branch.
+
+Cloudflare Pages serves the static `public/` directory from `main` and never reads the database.
+
+### The `data` branch (database storage)
+
+`tesla_cars.db` is **not** tracked on `main`. It lives on a dedicated `data` branch as a *single, force-pushed commit* that is overwritten every run, so daily DB churn never accumulates in git history. The database's own tables (`price_snapshots`, `first_seen`, `removed_at`) are the durable time-series — git only needs the latest file.
+
+- Get the live DB locally: `git show origin/data:tesla_cars.db > tesla_cars.db`
+- The `data` branch has no meaningful git history by design; do not expect to roll the DB back through it. Recovery from a bad write is prevented up front by the integrity-check step.
 
 ## Key Conventions
 

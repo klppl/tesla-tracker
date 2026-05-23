@@ -25,8 +25,35 @@ jobs:
       - name: Install dependencies
         run: uv pip install -r requirements.txt --system
 
+      - name: Restore database from data branch
+        run: |
+          # The DB lives on the 'data' branch (a single force-pushed commit),
+          # not on main. Restore the latest copy before scraping; on the very
+          # first run the branch won't exist yet and we start from empty.
+          if git fetch --depth=1 origin data 2>/dev/null; then
+            git show FETCH_HEAD:tesla_cars.db > tesla_cars.db
+            echo "Restored DB from data branch."
+          else
+            echo "No data branch yet — starting from an empty database."
+          fi
+
       - name: Run scraper
         run: python scraper.py 2>&1 | tee /tmp/scraper-output.txt
+
+      - name: Verify database integrity
+        run: |
+          # Never publish or persist a corrupt/empty DB — abort if the scrape
+          # produced something broken so the last good copy on 'data' survives.
+          python - <<'PY'
+          import sqlite3, sys
+          c = sqlite3.connect("tesla_cars.db")
+          if c.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+              sys.exit("DB failed integrity_check")
+          n = c.execute("SELECT COUNT(*) FROM cars").fetchone()[0]
+          print(f"DB ok — {n} cars")
+          if n == 0:
+              sys.exit("DB has zero cars — refusing to publish")
+          PY
 
       - name: Generate static site
         run: python app.py --static 2>&1 | tee /tmp/build-output.txt
@@ -53,10 +80,25 @@ jobs:
             mv /tmp/new-entry.txt public/log.txt
           fi
 
-      - name: Commit updated data and static site
+      - name: Commit static site to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f tesla_cars.db public/
-          git diff --staged --quiet || git commit -m "Daglig uppdatering: scrape + static build"
+          git add -f public/
+          git diff --staged --quiet || git commit -m "Daglig uppdatering: static build"
           git push
+
+      - name: Persist database to data branch
+        run: |
+          # Overwrite the 'data' branch with a single fresh commit so DB history
+          # never bloats the repo. The DB's internal tables keep the time-series.
+          tmp="$(mktemp -d)"
+          cp tesla_cars.db "$tmp/tesla_cars.db"
+          git -C "$tmp" init -q -b data
+          git -C "$tmp" config user.name "github-actions[bot]"
+          git -C "$tmp" config user.email "github-actions[bot]@users.noreply.github.com"
+          git -C "$tmp" add tesla_cars.db
+          git -C "$tmp" commit -q -m "DB snapshot $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git -C "$tmp" push -q --force \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
+          rm -rf "$tmp"
