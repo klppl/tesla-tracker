@@ -31,7 +31,8 @@ def init_db():
             color TEXT,
             towbar TEXT,
             winter_wheels TEXT,
-            battery_range INTEGER
+            battery_range INTEGER,
+            is_duplicate INTEGER DEFAULT 0
         )
     ''')
 
@@ -52,6 +53,7 @@ def init_db():
         ('color', 'TEXT', 'NULL'), ('towbar', 'TEXT', 'NULL'),
         ('winter_wheels', 'TEXT', 'NULL'), ('battery_range', 'INTEGER', 'NULL'),
         ('first_seen', 'TEXT', 'NULL'),
+        ('is_duplicate', 'INTEGER', '0'),
     ]
     for col, coltype, default in new_cols:
         try:

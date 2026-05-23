@@ -90,6 +90,51 @@ def mark_removed_cars(source, seen_ids):
     return removed
 
 
+def dedupe_cross_source():
+    """Flag cross-source duplicate listings so analytics don't double-count the
+    same physical car listed on more than one site.
+
+    Match key is (model, year, mileage, price); within a matched group the
+    canonical source (carla.se, which carries the richest metadata) is kept and
+    every row from another source is flagged is_duplicate=1. Only rows from a
+    *different* source are flagged, so two genuinely distinct cars on the same
+    site are never merged. Recomputed from scratch each run.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Reset first so cars that are no longer duplicated become visible again.
+    cursor.execute("UPDATE cars SET is_duplicate = 0 WHERE is_duplicate = 1")
+
+    cursor.execute('''
+        SELECT model, year, mileage, price
+        FROM cars
+        WHERE status = 'active' AND price IS NOT NULL
+          AND mileage IS NOT NULL AND year IS NOT NULL
+        GROUP BY model, year, mileage, price
+        HAVING COUNT(DISTINCT source) > 1
+    ''')
+    groups = cursor.fetchall()
+
+    flagged = 0
+    for model, year, mileage, price in groups:
+        cursor.execute('''
+            SELECT id, source FROM cars
+            WHERE status = 'active' AND model = ? AND year = ?
+              AND mileage = ? AND price = ?
+        ''', (model, year, mileage, price))
+        rows = cursor.fetchall()
+        sources = {src for _, src in rows}
+        canonical = 'carla.se' if 'carla.se' in sources else sorted(sources)[0]
+        for car_id, src in rows:
+            if src != canonical:
+                cursor.execute("UPDATE cars SET is_duplicate = 1 WHERE id = ?", (car_id,))
+                flagged += 1
+
+    conn.commit()
+    conn.close()
+    return flagged
+
+
 def save_price_snapshot():
     conn = get_connection()
     cursor = conn.cursor()
@@ -97,6 +142,7 @@ def save_price_snapshot():
     cursor.execute('''
         SELECT model, price FROM cars
         WHERE status = 'active' AND price IS NOT NULL
+          AND COALESCE(is_duplicate, 0) = 0
         ORDER BY model, price
     ''')
     rows = cursor.fetchall()
@@ -145,8 +191,11 @@ def main():
             removed = mark_removed_cars(scraper.name, seen_ids)
             print(f"[{scraper.name}] Marked {removed} cars as removed/sold.")
 
+    flagged = dedupe_cross_source()
+    print(f"\nFlagged {flagged} cross-source duplicate listings.")
+
     save_price_snapshot()
-    print("\nPrice snapshot saved.")
+    print("Price snapshot saved.")
 
 
 if __name__ == "__main__":

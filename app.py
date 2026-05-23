@@ -3,9 +3,14 @@ import sqlite3
 import os
 import argparse
 from datetime import datetime
+from database import init_db
 
 app = Flask(__name__)
 DB_PATH = os.path.join(os.path.dirname(__file__), "tesla_cars.db")
+
+# Shared predicate for "a car that should appear in active-market stats":
+# currently listed and not a flagged cross-source duplicate.
+ACTIVE = "status = 'active' AND COALESCE(is_duplicate, 0) = 0"
 
 def get_connection():
     return sqlite3.connect(DB_PATH)
@@ -13,7 +18,11 @@ def get_connection():
 def get_analytics_data():
     if not os.path.exists(DB_PATH):
         return {}
-        
+
+    # Ensure the schema is current (idempotent) so a static build never trips
+    # over a column added since the DB was last written by the scraper.
+    init_db()
+
     conn = get_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -36,13 +45,14 @@ def get_analytics_data():
         "battery_range": {},
     }
 
-    # Summary stats
-    cursor.execute("SELECT COUNT(*) FROM cars WHERE status = 'active'")
+    # Summary stats. ACTIVE = listed and not a cross-source duplicate, so the
+    # same physical car listed on two sites is counted once.
+    cursor.execute(f"SELECT COUNT(*) FROM cars WHERE {ACTIVE}")
     analytics["summary"]["total"] = cursor.fetchone()[0]
-    cursor.execute("SELECT model, COUNT(*) as cnt FROM cars WHERE status = 'active' GROUP BY model ORDER BY cnt DESC")
+    cursor.execute(f"SELECT model, COUNT(*) as cnt FROM cars WHERE {ACTIVE} GROUP BY model ORDER BY cnt DESC")
     for row in cursor.fetchall():
         analytics["summary"]["by_model"][row["model"]] = row["cnt"]
-    cursor.execute("SELECT source, COUNT(*) as cnt FROM cars WHERE status = 'active' GROUP BY source ORDER BY cnt DESC")
+    cursor.execute(f"SELECT source, COUNT(*) as cnt FROM cars WHERE {ACTIVE} GROUP BY source ORDER BY cnt DESC")
     for row in cursor.fetchall():
         analytics["summary"]["by_source"][row["source"]] = row["cnt"]
 
@@ -71,16 +81,16 @@ def get_analytics_data():
             MIN(year) as min_year,
             MAX(year) as max_year
         FROM cars
-        WHERE status = 'active' AND price IS NOT NULL
-    ''')
+        WHERE {ACTIVE} AND price IS NOT NULL
+    '''.format(ACTIVE=ACTIVE))
     row = cursor.fetchone()
     if row and row["avg_price"]:
         # Compute median price separately
         cursor.execute('''
             SELECT price FROM cars
-            WHERE status = 'active' AND price IS NOT NULL
+            WHERE {ACTIVE} AND price IS NOT NULL
             ORDER BY price
-        ''')
+        '''.format(ACTIVE=ACTIVE))
         prices = [r["price"] for r in cursor.fetchall()]
         n = len(prices)
         if n > 0:
@@ -125,8 +135,8 @@ def get_analytics_data():
     cursor.execute('''
         SELECT model, version, year, price, mileage / 10.0 as mileage_mil, url, source, color
         FROM cars
-        WHERE price IS NOT NULL AND mileage IS NOT NULL AND status = 'active'
-    ''')
+        WHERE price IS NOT NULL AND mileage IS NOT NULL AND {ACTIVE}
+    '''.format(ACTIVE=ACTIVE))
     for row in cursor.fetchall():
         model = f"Tesla {row['model']}"
         if model not in analytics["scatter"]:
@@ -210,10 +220,10 @@ def get_analytics_data():
                 ROUND(AVG(price)) as avg_price,
                 COUNT(*) as cnt
             FROM cars
-            WHERE price IS NOT NULL AND status = 'active'
+            WHERE price IS NOT NULL AND {ACTIVE}
             GROUP BY towbar_label
             HAVING cnt >= 2
-        ''')
+        '''.format(ACTIVE=ACTIVE))
         towbar_stats = []
         for row in cursor.fetchall():
             towbar_stats.append({
@@ -232,10 +242,10 @@ def get_analytics_data():
                 ROUND(AVG(price)) as avg_price,
                 COUNT(*) as cnt
             FROM cars
-            WHERE price IS NOT NULL AND status = 'active'
+            WHERE price IS NOT NULL AND {ACTIVE}
             GROUP BY wheels_label
             HAVING cnt >= 2
-        ''')
+        '''.format(ACTIVE=ACTIVE))
         winter_stats = []
         for row in cursor.fetchall():
             winter_stats.append({
@@ -447,11 +457,11 @@ def get_analytics_data():
             SELECT model, year, ROUND(AVG(battery_range)) as avg_range, COUNT(*) as cnt
             FROM cars
             WHERE battery_range IS NOT NULL AND battery_range > 0
-              AND year IS NOT NULL AND status = 'active'
+              AND year IS NOT NULL AND {ACTIVE}
             GROUP BY model, year
             HAVING cnt >= 1
             ORDER BY model, year
-        ''')
+        '''.format(ACTIVE=ACTIVE))
         for row in cursor.fetchall():
             model = f"Tesla {row['model']}"
             if model not in analytics["battery_range"]:
