@@ -501,9 +501,11 @@ if __name__ == '__main__':
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--server", action="store_true", help="Starta Flask-servern")
     group.add_argument("--static", action="store_true", help="Generera statiska filer i /public")
+    parser.add_argument("--debug", action="store_true",
+                        help="Aktivera Flask debug-läge (endast lokal utveckling)")
     args = parser.parse_args()
 
     if args.static:
         generate_static()
     else:
-        app.run(debug=True, port=5000)
+        app.run(debug=args.debug, port=5000)
