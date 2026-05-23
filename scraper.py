@@ -61,17 +61,26 @@ def mark_removed_cars(source, seen_ids):
     """
     conn = get_connection()
     cursor = conn.cursor()
-    seen = list(seen_ids)
-    placeholders = ','.join('?' for _ in seen)
-    cursor.execute(f'''
+    # Load seen IDs into a temp table instead of inlining one bind variable per
+    # ID — that hits SQLite's SQLITE_MAX_VARIABLE_NUMBER limit (999 on older
+    # builds) once a source has enough listings.
+    cursor.execute("CREATE TEMP TABLE seen_ids (id TEXT PRIMARY KEY)")
+    cursor.executemany(
+        "INSERT OR IGNORE INTO seen_ids (id) VALUES (?)",
+        [(i,) for i in seen_ids],
+    )
+    cursor.execute('''
         UPDATE cars SET status = 'removed', removed_at = date('now')
-        WHERE status = 'active' AND source = ? AND id NOT IN ({placeholders})
-    ''', [source] + seen)
+        WHERE status = 'active' AND source = ?
+          AND id NOT IN (SELECT id FROM seen_ids)
+    ''', (source,))
     removed = cursor.rowcount
-    cursor.execute(f'''
+    cursor.execute('''
         UPDATE cars SET status = 'active', removed_at = NULL
-        WHERE status = 'removed' AND source = ? AND id IN ({placeholders})
-    ''', [source] + seen)
+        WHERE status = 'removed' AND source = ?
+          AND id IN (SELECT id FROM seen_ids)
+    ''', (source,))
+    cursor.execute("DROP TABLE seen_ids")
     conn.commit()
     conn.close()
     return removed
