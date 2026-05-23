@@ -343,9 +343,12 @@ def get_analytics_data():
         for model, points in snapshot_data.items():
             if len(points) < 2:
                 continue
-            # Simple linear regression: price = slope * day_index + intercept
+            # Linear regression price = slope * day + intercept, where day is
+            # the number of days since the first snapshot — not the row index —
+            # so gaps in the snapshot history don't distort the slope.
             n = len(points)
-            xs = list(range(n))
+            base_date = datetime.strptime(points[0][0], '%Y-%m-%d')
+            xs = [(datetime.strptime(d, '%Y-%m-%d') - base_date).days for d, _ in points]
             ys = [p[1] for p in points]
             x_mean = sum(xs) / n
             y_mean = sum(ys) / n
@@ -354,8 +357,8 @@ def get_analytics_data():
             slope = num / den if den != 0 else 0
             intercept = y_mean - slope * x_mean
 
-            # Predict 90 days ahead
-            pred_90 = round(slope * (n - 1 + 90) + intercept)
+            # Predict 90 days past the most recent snapshot
+            pred_90 = round(slope * (xs[-1] + 90) + intercept)
             current = ys[-1]
             change_pct = round((pred_90 - current) / current * 100, 1) if current else 0
 
