@@ -910,8 +910,61 @@
             white-space: nowrap;
         }
 
+        /* Collapsible "Alla bilar" section */
+        .listing-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            cursor: pointer;
+            color: inherit;
+            text-align: left;
+            font: inherit;
+        }
+
+        .listing-toggle .chart-title {
+            margin: 0;
+        }
+
+        .listing-toggle-text {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .listing-toggle-chevron {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            line-height: 1;
+            transition: transform 0.18s ease;
+            flex-shrink: 0;
+        }
+
+        .listing-collapsible:not(.collapsed) .listing-toggle-chevron {
+            transform: rotate(90deg);
+        }
+
+        .listing-collapse-body {
+            overflow: hidden;
+            transition: opacity 0.15s ease;
+        }
+
+        .listing-collapsible.collapsed .listing-collapse-body {
+            display: none;
+        }
+
+        .listing-collapsible.collapsed .listing-search-wrap {
+            display: none;
+        }
+
         .listing-table-wrap {
             overflow-x: auto;
+            overflow-y: auto;
+            max-height: 460px;
             -webkit-overflow-scrolling: touch;
         }
 
@@ -1248,36 +1301,41 @@
         </div>
 
         <!-- Billistning -->
-        <div id="section-listing" class="chart-card">
+        <div id="section-listing" class="chart-card listing-collapsible collapsed">
             <div class="listing-header">
-                <div>
-                    <h2 class="chart-title">Alla bilar</h2>
-                    <p class="chart-subtitle">Synkad med filtren ovan. Klicka på kolumnrubriker för att sortera.</p>
-                </div>
+                <button type="button" class="listing-toggle" id="listing-toggle" aria-expanded="false" aria-controls="listing-body-wrap">
+                    <span class="listing-toggle-chevron">&#9654;</span>
+                    <span class="listing-toggle-text">
+                        <span class="chart-title">Alla bilar</span>
+                        <span id="listing-count" class="listing-count"></span>
+                    </span>
+                </button>
                 <div class="listing-search-wrap">
                     <input type="text" id="listing-search" class="listing-search" placeholder="Sök modell, version, färg...">
-                    <span id="listing-count" class="listing-count"></span>
                 </div>
             </div>
-            <div class="listing-table-wrap">
-                <table class="listing-table" id="listing-table">
-                    <thead>
-                        <tr>
-                            <th data-sort="model">Modell</th>
-                            <th data-sort="version">Version</th>
-                            <th data-sort="year" class="num">År</th>
-                            <th data-sort="y" class="num sort-active sort-asc">Pris</th>
-                            <th data-sort="x" class="num">Miltal</th>
-                            <th data-sort="kr_mil" class="num">Kr/mil</th>
-                            <th data-sort="color">Färg</th>
-                            <th data-sort="source">Källa</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listing-body"></tbody>
-                </table>
-            </div>
-            <div class="listing-footer">
-                <button id="listing-show-more" class="listing-show-more" style="display:none;">Visa fler</button>
+            <div class="listing-collapse-body" id="listing-body-wrap">
+                <p class="chart-subtitle">Synkad med filtren ovan. Klicka på kolumnrubriker för att sortera.</p>
+                <div class="listing-table-wrap">
+                    <table class="listing-table" id="listing-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="model">Modell</th>
+                                <th data-sort="version">Version</th>
+                                <th data-sort="year" class="num">År</th>
+                                <th data-sort="y" class="num sort-active sort-asc">Pris</th>
+                                <th data-sort="x" class="num">Miltal</th>
+                                <th data-sort="kr_mil" class="num">Kr/mil</th>
+                                <th data-sort="color">Färg</th>
+                                <th data-sort="source">Källa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listing-body"></tbody>
+                    </table>
+                </div>
+                <div class="listing-footer">
+                    <button id="listing-show-more" class="listing-show-more" style="display:none;">Visa fler</button>
+                </div>
             </div>
         </div>
 
@@ -2529,7 +2587,26 @@
                         listingVisible = PAGE_SIZE;
                         renderListing();
                     });
+                    // Don't let clicks/focus in the search box toggle the section.
+                    listingSearch.addEventListener('click', e => e.stopPropagation());
                 }
+
+                // Collapse/expand the "Alla bilar" section (collapsed by default).
+                const listingSection = document.getElementById('section-listing');
+                const listingToggle = document.getElementById('listing-toggle');
+                function setListingCollapsed(collapsed) {
+                    listingSection.classList.toggle('collapsed', collapsed);
+                    listingToggle.setAttribute('aria-expanded', String(!collapsed));
+                }
+                if (listingToggle) {
+                    listingToggle.addEventListener('click', () => {
+                        setListingCollapsed(!listingSection.classList.contains('collapsed'));
+                    });
+                }
+                // Expand automatically when reached via the sidebar nav link.
+                document.querySelectorAll('a[href="#section-listing"]').forEach(a => {
+                    a.addEventListener('click', () => setListingCollapsed(false));
+                });
 
                 function updateScatterAll() {
                     const minMil = parseFloat(mileageMinInput.value) || 0;
