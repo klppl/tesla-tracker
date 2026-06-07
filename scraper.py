@@ -90,15 +90,50 @@ def mark_removed_cars(source, seen_ids):
     return removed
 
 
+# Cross-source duplicate matching tolerances. An exact (mileage, price) match
+# never fires across sources: Wayke stores mileage as mil*10 (always a multiple
+# of 10 km, off by up to ~9 km from Carla's exact km), so a tolerance is
+# required. Calibrated against live data — true cross-listings are price-
+# identical and within a handful of km, while distinct cars only start matching
+# once the price tolerance grows past ~1%. These values flag the real dupes
+# (~18% of active listings) without merging genuinely distinct cars.
+DUP_MILEAGE_ABS_KM = 20    # absolute mileage slack (absorbs Wayke's mil rounding)
+DUP_MILEAGE_REL = 0.005    # relative mileage slack for high-mileage cars (0.5%)
+DUP_PRICE_REL = 0.005      # price must match within 0.5%
+
+
+def _source_rank(source):
+    """Canonical ordering for duplicate resolution (lower = kept).
+
+    carla.se wins because it carries the richest metadata; every other source is
+    ordered deterministically by name so the result is stable and a duplicate is
+    always resolved in favour of the same survivor.
+    """
+    return (0 if source == "carla.se" else 1, source)
+
+
+def _is_duplicate_match(a, b):
+    """True if two listings look like the same physical car."""
+    if min(a["mileage"], b["mileage"], a["price"], b["price"]) <= 0:
+        return False
+    mil_abs = abs(a["mileage"] - b["mileage"])
+    mil_rel = mil_abs / max(a["mileage"], b["mileage"])
+    price_rel = abs(a["price"] - b["price"]) / max(a["price"], b["price"])
+    return (mil_abs <= DUP_MILEAGE_ABS_KM or mil_rel <= DUP_MILEAGE_REL) \
+        and price_rel <= DUP_PRICE_REL
+
+
 def dedupe_cross_source():
     """Flag cross-source duplicate listings so analytics don't double-count the
     same physical car listed on more than one site.
 
-    Match key is (model, year, mileage, price); within a matched group the
-    canonical source (carla.se, which carries the richest metadata) is kept and
-    every row from another source is flagged is_duplicate=1. Only rows from a
-    *different* source are flagged, so two genuinely distinct cars on the same
-    site are never merged. Recomputed from scratch each run.
+    A listing is flagged is_duplicate=1 when another active listing from a
+    *more canonical* source (see _source_rank) has the same model and year and a
+    mileage/price within tolerance (see _is_duplicate_match). Matching is
+    pairwise against the more-canonical source, not transitive clustering, so a
+    chain of near-priced cars can't collapse into one group. Two listings from
+    the same source are never matched, so genuinely distinct cars on one site are
+    preserved. Recomputed from scratch each run.
     """
     conn = get_connection()
     cursor = conn.cursor()
@@ -106,33 +141,39 @@ def dedupe_cross_source():
     cursor.execute("UPDATE cars SET is_duplicate = 0 WHERE is_duplicate = 1")
 
     cursor.execute('''
-        SELECT model, year, mileage, price
+        SELECT id, source, model, year, mileage, price
         FROM cars
         WHERE status = 'active' AND price IS NOT NULL
           AND mileage IS NOT NULL AND year IS NOT NULL
-        GROUP BY model, year, mileage, price
-        HAVING COUNT(DISTINCT source) > 1
     ''')
-    groups = cursor.fetchall()
+    # Bucket by (model, year) — only cars in the same bucket can be duplicates.
+    buckets = {}
+    for car_id, source, model, year, mileage, price in cursor.fetchall():
+        buckets.setdefault((model, year), []).append(
+            {"id": car_id, "source": source, "mileage": mileage, "price": price}
+        )
 
-    flagged = 0
-    for model, year, mileage, price in groups:
-        cursor.execute('''
-            SELECT id, source FROM cars
-            WHERE status = 'active' AND model = ? AND year = ?
-              AND mileage = ? AND price = ?
-        ''', (model, year, mileage, price))
-        rows = cursor.fetchall()
-        sources = {src for _, src in rows}
-        canonical = 'carla.se' if 'carla.se' in sources else sorted(sources)[0]
-        for car_id, src in rows:
-            if src != canonical:
-                cursor.execute("UPDATE cars SET is_duplicate = 1 WHERE id = ?", (car_id,))
-                flagged += 1
+    flagged_ids = []
+    for cars in buckets.values():
+        if len(cars) < 2:
+            continue
+        for car in cars:
+            # Flag this car if a more-canonical, different-source listing matches.
+            for other in cars:
+                if other["source"] == car["source"]:
+                    continue
+                if _source_rank(other["source"]) < _source_rank(car["source"]) \
+                        and _is_duplicate_match(car, other):
+                    flagged_ids.append(car["id"])
+                    break
 
+    cursor.executemany(
+        "UPDATE cars SET is_duplicate = 1 WHERE id = ?",
+        [(i,) for i in flagged_ids],
+    )
     conn.commit()
     conn.close()
-    return flagged
+    return len(flagged_ids)
 
 
 def save_price_snapshot():
