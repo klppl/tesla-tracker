@@ -126,11 +126,11 @@ def get_analytics_data():
             AVG(price) as avg_price, 
             AVG(mileage) / 10.0 as avg_mileage_mil,
             COUNT(*) as count
-        FROM cars 
-        WHERE year IS NOT NULL
+        FROM cars
+        WHERE year IS NOT NULL AND {ACTIVE}
         GROUP BY model, year
         ORDER BY model, year
-    ''')
+    '''.format(ACTIVE=ACTIVE))
     for row in cursor.fetchall():
         model = f"Tesla {row['model']}"
         if model not in analytics["averages"]:
@@ -275,11 +275,11 @@ def get_analytics_data():
         cursor.execute('''
             SELECT color, ROUND(AVG(price)) as avg_price, COUNT(*) as cnt
             FROM cars
-            WHERE color IS NOT NULL AND price IS NOT NULL
+            WHERE color IS NOT NULL AND price IS NOT NULL AND {ACTIVE}
             GROUP BY color
             HAVING cnt >= 2
             ORDER BY avg_price DESC
-        ''')
+        '''.format(ACTIVE=ACTIVE))
         colors_list = []
         for row in cursor.fetchall():
             colors_list.append({
@@ -297,10 +297,10 @@ def get_analytics_data():
         cursor.execute('''
             SELECT model, year, ROUND(AVG(price)) as avg_price, COUNT(*) as cnt
             FROM cars
-            WHERE year IS NOT NULL AND price IS NOT NULL
+            WHERE year IS NOT NULL AND price IS NOT NULL AND {ACTIVE}
             GROUP BY model, year
             ORDER BY model, year
-        ''')
+        '''.format(ACTIVE=ACTIVE))
         for row in cursor.fetchall():
             model = f"Tesla {row['model']}"
             age = current_year - row['year']
