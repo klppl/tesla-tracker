@@ -1558,75 +1558,98 @@
                 return v || 'Okänd';
             }
 
-            // Find the "golden car": most underpriced relative to market.
-            // Fits price ~ year + mileage via linear regression, then picks
-            // the car with the largest negative residual (actual - expected).
-            function findGoldenCar(points) {
-                if (!points || points.length < 3) return null;
-                const valid = points.filter(p => p.year && p.x != null && p.y != null);
-                if (valid.length < 3) return null;
+            // Find the "golden car": the most underpriced listing relative to
+            // its true peers. For each (model, trim) group it fits
+            // price ~ year + mileage by ordinary least squares, then scores
+            // every car by how many residual standard deviations it sits BELOW
+            // its predicted price. The best deal is the lowest such z-score.
+            //
+            // This replaces an earlier version that pooled all models, ignored
+            // trim, and returned the single most-negative residual — which
+            // always surfaced an outlier (a stripped base trim, a salvage car,
+            // or a fat-fingered price) rather than a real deal. Grouping by
+            // model AND trim compares like with like, and the z-score band
+            // rejects both noise-level "deals" and implausible extremes.
+            const GOLDEN_MIN_SAMPLE = 6;   // need enough comparable cars to trust the fit
+            const GOLDEN_Z_MIN = 1.0;      // must be >= 1 std under its peers to count
+            const GOLDEN_Z_MAX = 3.5;      // more extreme than this is likely bad data
 
-                const n = valid.length;
-                // Variables: x1 = year, x2 = mileage, y = price
-                let sx1 = 0, sx2 = 0, sy = 0;
-                let sx1x1 = 0, sx2x2 = 0, sx1x2 = 0;
-                let sx1y = 0, sx2y = 0;
+            function trimTier(version) {
+                const v = (version || '').toLowerCase();
+                if (v.includes('performance')) return 'P';
+                if (v.includes('long range') || v.includes('long-range') || /\blr\b/.test(v)) return 'LR';
+                if (v.includes('standard') || v.includes('rwd') || /\bsr\b/.test(v)) return 'SR';
+                return 'X';
+            }
 
-                valid.forEach(p => {
-                    const x1 = p.year, x2 = p.x, y = p.y;
+            function det3(m) {
+                return m[0][0] * (m[1][1]*m[2][2] - m[1][2]*m[2][1])
+                     - m[0][1] * (m[1][0]*m[2][2] - m[1][2]*m[2][0])
+                     + m[0][2] * (m[1][0]*m[2][1] - m[1][1]*m[2][0]);
+            }
+
+            // Fit price ~ year + mileage (OLS, Cramer's rule) for one peer group
+            // and return a function mapping a car to its residual z-score, or
+            // null if the group is too small or degenerate (e.g. all one year).
+            // Inputs are mean-centred for numerical conditioning.
+            function fitGroupScorer(group) {
+                const n = group.length;
+                if (n < GOLDEN_MIN_SAMPLE) return null;
+
+                const yearMean = group.reduce((s, p) => s + p.year, 0) / n;
+                const mileMean = group.reduce((s, p) => s + p.x, 0) / n;
+
+                let sx1 = 0, sx2 = 0, sy = 0, sx1x1 = 0, sx2x2 = 0, sx1x2 = 0, sx1y = 0, sx2y = 0;
+                group.forEach(p => {
+                    const x1 = p.year - yearMean, x2 = p.x - mileMean, y = p.y;
                     sx1 += x1; sx2 += x2; sy += y;
                     sx1x1 += x1 * x1; sx2x2 += x2 * x2; sx1x2 += x1 * x2;
                     sx1y += x1 * y; sx2y += x2 * y;
                 });
 
-                // Solve normal equations for y = a*x1 + b*x2 + c
-                // Using Cramer's rule on the 3x3 system
-                const A = [
-                    [sx1x1, sx1x2, sx1],
-                    [sx1x2, sx2x2, sx2],
-                    [sx1,   sx2,   n  ]
-                ];
+                const A = [[sx1x1, sx1x2, sx1], [sx1x2, sx2x2, sx2], [sx1, sx2, n]];
                 const B = [sx1y, sx2y, sy];
-
-                function det3(m) {
-                    return m[0][0] * (m[1][1]*m[2][2] - m[1][2]*m[2][1])
-                         - m[0][1] * (m[1][0]*m[2][2] - m[1][2]*m[2][0])
-                         + m[0][2] * (m[1][0]*m[2][1] - m[1][1]*m[2][0]);
-                }
-
                 const D = det3(A);
-                if (Math.abs(D) < 1e-10) return null;
+                if (Math.abs(D) < 1e-6) return null;   // degenerate / collinear group
 
-                const Da = det3([
-                    [B[0], A[0][1], A[0][2]],
-                    [B[1], A[1][1], A[1][2]],
-                    [B[2], A[2][1], A[2][2]]
-                ]);
-                const Db = det3([
-                    [A[0][0], B[0], A[0][2]],
-                    [A[1][0], B[1], A[1][2]],
-                    [A[2][0], B[2], A[2][2]]
-                ]);
-                const Dc = det3([
-                    [A[0][0], A[0][1], B[0]],
-                    [A[1][0], A[1][1], B[1]],
-                    [A[2][0], A[2][1], B[2]]
-                ]);
+                const a = det3([[B[0],A[0][1],A[0][2]], [B[1],A[1][1],A[1][2]], [B[2],A[2][1],A[2][2]]]) / D;
+                const b = det3([[A[0][0],B[0],A[0][2]], [A[1][0],B[1],A[1][2]], [A[2][0],B[2],A[2][2]]]) / D;
+                const c = det3([[A[0][0],A[0][1],B[0]], [A[1][0],A[1][1],B[1]], [A[2][0],A[2][1],B[2]]]) / D;
 
-                const a = Da / D; // year coefficient
-                const b = Db / D; // mileage coefficient
-                const c = Dc / D; // intercept
+                const expected = p => a * (p.year - yearMean) + b * (p.x - mileMean) + c;
+                const residuals = group.map(p => p.y - expected(p));
+                const rMean = residuals.reduce((s, r) => s + r, 0) / n;
+                const variance = residuals.reduce((s, r) => s + (r - rMean) ** 2, 0) / n;
+                const std = Math.sqrt(variance);
+                if (!(std > 0)) return null;
 
-                // Find car with largest negative residual (most underpriced)
-                let best = null;
-                let bestResidual = Infinity;
-                valid.forEach(pt => {
-                    const expected = a * pt.year + b * pt.x + c;
-                    const residual = pt.y - expected;
-                    if (residual < bestResidual) {
-                        bestResidual = residual;
-                        best = pt;
-                    }
+                return p => (p.y - expected(p)) / std;   // residual z-score
+            }
+
+            function findGoldenCar(points) {
+                if (!points || points.length < GOLDEN_MIN_SAMPLE) return null;
+                const valid = points.filter(p => p.year && p.x != null && p.y != null);
+
+                // Group by model + trim so cars are only compared with true peers.
+                const groups = {};
+                valid.forEach(p => {
+                    const key = (p.model || '?') + '|' + trimTier(p.version);
+                    (groups[key] || (groups[key] = [])).push(p);
+                });
+
+                let best = null, bestZ = 0;
+                Object.values(groups).forEach(group => {
+                    const score = fitGroupScorer(group);
+                    if (!score) return;
+                    group.forEach(p => {
+                        const z = score(p);
+                        // A genuine deal sits meaningfully below its peers, but
+                        // not so far that it's almost certainly bad data.
+                        if (z <= -GOLDEN_Z_MIN && z >= -GOLDEN_Z_MAX && z < bestZ) {
+                            bestZ = z;
+                            best = p;
+                        }
+                    });
                 });
                 return best;
             }
