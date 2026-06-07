@@ -2,8 +2,17 @@ from flask import Flask, render_template
 import sqlite3
 import os
 import argparse
+import logging
 from datetime import datetime
 from database import init_db
+
+# Each analytics section is wrapped in try/except so one failing query (schema
+# drift, bad data) degrades that single chart instead of the whole dashboard.
+# Log the traceback rather than swallowing it silently — in the static/CI build
+# this surfaces in log.txt, which is the only way a quietly-missing chart gets
+# noticed. The traceback pinpoints the failing section by line.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+logger = logging.getLogger("tesla_tracker")
 
 app = Flask(__name__)
 DB_PATH = os.path.join(os.path.dirname(__file__), "tesla_cars.db")
@@ -187,7 +196,7 @@ def get_analytics_data():
             analytics["price_trends"][model]["median"].append(row['median_price'])
             analytics["price_trends"][model]["count"].append(row['car_count'])
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 5. Market stats – removed cars (sold)
     try:
@@ -206,7 +215,7 @@ def get_analytics_data():
                 "avg_days_on_market": int(row['avg_days']) if row['avg_days'] else None,
             }
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 6. Equipment value – separate towbar and winter wheel price impact
     try:
@@ -259,7 +268,7 @@ def get_analytics_data():
             "winter_wheels": winter_stats,
         }
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 7. Color stats – average price per color
     try:
@@ -280,7 +289,7 @@ def get_analytics_data():
             })
         analytics["color_stats"] = colors_list
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 8. Depreciation curve – avg price by car age (current year - model year)
     current_year = datetime.now().year
@@ -302,7 +311,7 @@ def get_analytics_data():
             analytics["depreciation"][model]["years"].append(row['year'])
             analytics["depreciation"][model]["counts"].append(row['cnt'])
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 9. Listing timing – weekday and month distribution. Intentionally uses
     # created_at (the seller's publish date), since this measures when sellers
@@ -339,7 +348,7 @@ def get_analytics_data():
             "avg_price": round(sum(month_prices[m]) / len(month_prices[m])) if month_prices[m] else 0,
         } for m in range(1, 13)]
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 10. Price prediction – linear extrapolation from snapshots
     try:
@@ -383,7 +392,7 @@ def get_analytics_data():
                 "data_points": n,
             }
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 11. Car flow – recently added and removed cars (last 7 days)
     try:
@@ -431,7 +440,7 @@ def get_analytics_data():
                 "date": row["removed_date"],
             })
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 12. Supply trend – car_count per model over time from snapshots
     try:
@@ -448,7 +457,7 @@ def get_analytics_data():
             analytics["supply_trend"][model]["dates"].append(row['date'])
             analytics["supply_trend"][model]["counts"].append(row['car_count'])
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     # 14. Battery range analysis
     try:
@@ -470,7 +479,7 @@ def get_analytics_data():
             analytics["battery_range"][model]["ranges"].append(int(row['avg_range']))
             analytics["battery_range"][model]["counts"].append(row['cnt'])
     except Exception:
-        pass
+        logger.exception("Analytics section failed — skipping (see traceback for which)")
 
     conn.close()
     return analytics
