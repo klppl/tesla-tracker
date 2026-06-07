@@ -179,7 +179,10 @@ def dedupe_cross_source():
 def save_price_snapshot():
     conn = get_connection()
     cursor = conn.cursor()
-    today = datetime.now().strftime('%Y-%m-%d')
+    # UTC to match date('now') (UTC) used for removals elsewhere — otherwise a
+    # snapshot taken near midnight local time can land under the wrong date on
+    # the (date, model) primary key.
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     cursor.execute('''
         SELECT model, price FROM cars
         WHERE status = 'active' AND price IS NOT NULL
