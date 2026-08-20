@@ -1,3 +1,27 @@
+=== 2026-08-20 06:47 UTC ===
+
+--- Scraper ---
+Initializing database...
+
+[carla.se] Fetching Tesla listings...
+[carla.se] Fetched 114 cars.
+[carla.se] Added 4 new, updated 2 prices.
+[carla.se] Marked 9 cars as removed/sold.
+
+[wayke.se] Fetching Tesla listings...
+  Wayke: skipped 3 leasing/no-price listings
+[wayke.se] Fetched 529 cars.
+[wayke.se] Added 33 new, updated 2 prices.
+[wayke.se] Marked 33 cars as removed/sold.
+
+Flagged 116 cross-source duplicate listings.
+Price snapshot saved.
+
+--- Static build ---
+Statisk sida genererad: /home/runner/work/tesla-tracker/tesla-tracker/public/index.html
+  Storlek: 450,080 bytes
+
+
 === 2026-08-19 06:44 UTC ===
 
 --- Scraper ---
