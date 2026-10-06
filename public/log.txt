@@ -1,3 +1,24 @@
+=== 2026-10-06 12:54 UTC ===
+
+--- Scraper ---
+Initializing database...
+
+[carla.se] Fetching Tesla listings...
+[carla.se] Fetched 130 cars.
+[carla.se] Added 3 new, updated 35 prices.
+[carla.se] Marked 5 cars as removed/sold.
+
+[wayke.se] Fetching Tesla listings...
+[wayke.se] Error: 404 Client Error: Not Found for url: https://www.wayke.se/api/search/vehicles?manufacturer=Tesla&hits=100&offset=0 — skipping removal reconciliation.
+
+Flagged 98 cross-source duplicate listings.
+Price snapshot saved.
+
+--- Static build ---
+Statisk sida genererad: /home/runner/work/tesla-tracker/tesla-tracker/public/index.html
+  Storlek: 563,282 bytes
+
+
 === 2026-10-05 13:51 UTC ===
 
 --- Scraper ---
