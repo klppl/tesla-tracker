@@ -1,5 +1,7 @@
 # Tesla Tracker
 
+[![License: Lagom](https://img.shields.io/badge/license-lagom-9E2B25)](https://klppl.github.io/lagom-license/)
+
 Analysverktyg för begagnade Teslor på den svenska marknaden. Scrapar annonser från [Carla.se](https://www.carla.se) och [Wayke.se](https://www.wayke.se), lagrar data i SQLite och visar en interaktiv dashboard med pris- och marknadstrender.
 
 ## Funktioner
